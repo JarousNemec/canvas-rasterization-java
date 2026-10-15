@@ -2,8 +2,6 @@ package rasterize;
 
 import raster.Raster;
 
-import java.awt.*;
-
 public class LineRasterizerTrivial extends LineRasterizer {
 
     public LineRasterizerTrivial(Raster raster) {
@@ -12,12 +10,19 @@ public class LineRasterizerTrivial extends LineRasterizer {
 
     @Override
     public void rasterize(int x1, int y1, int x2, int y2) {
-        //vzdalenosti bodu = delky odvesen
+        //Distances between points = lengths of triangle arms
         float dx = x2 - x1;
         float dy = y2 - y1;
 
-        //tangens trojuhelniku uhel u pocatku žejo = tedy protilehla / prilehle = dy / dx
+        //Check for dividing by zero
+        if (dx == 0 && dy == 0) {
+            return;
+        }
+
+        //Tangent is the opposite side over the hypotenuse. For example dy / dx depending on used quadrant.
         if (Math.abs(dx) >= Math.abs(dy)) {
+
+            //Swap points if one is bigger than the other
             if (x1 > x2) {
                 int temp = x1;
                 x1 = x2;
@@ -26,14 +31,19 @@ public class LineRasterizerTrivial extends LineRasterizer {
                 y1 = y2;
                 y2 = temp;
             }
+
+            //Calculate the slopes for the slope-intercept form of the equation of a line segment
             float k = dy / dx;
             float q = y1 - k * x1; //y = kx + q -> q = y - kx
+
+            //Iterate though every point and draw it
             for (int x = x1; x <= x2; x++) {
-                int y = (int) (k * x + q);
+                int y = Math.round(k * x + q);
                 raster.setPixel(x, y, color);
             }
 
         } else {
+            //Swap points if one is bigger than the other
             if (y1 > y2) {
                 int temp = x1;
                 x1 = x2;
@@ -42,10 +52,14 @@ public class LineRasterizerTrivial extends LineRasterizer {
                 y1 = y2;
                 y2 = temp;
             }
+
+            //Calculate the slopes for the slope-intercept form of the equation of a line segment
             float k = dx / dy;
             float q = x1 - k * y1;
+
+            //Iterate though every point and draw it
             for (int y = y1; y <= y2; y++) {
-                int x = (int) (k * y + q);
+                int x = Math.round(k * y + q);
                 raster.setPixel(x, y, color);
             }
         }
