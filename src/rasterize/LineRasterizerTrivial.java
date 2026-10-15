@@ -2,6 +2,7 @@ package rasterize;
 
 import raster.Raster;
 
+//Implementation of line rasterizer that uses the Trivial (Naive) algorithm
 public class LineRasterizerTrivial extends LineRasterizer {
 
     public LineRasterizerTrivial(Raster raster) {
