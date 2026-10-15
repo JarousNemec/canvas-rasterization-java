@@ -5,10 +5,10 @@ import java.time.format.DateTimeFormatter;
 
 public class Logger {
 
-    // Formátovač času (např. 14:25:08)
+    // Time formater (etc. 14:25:08)
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
 
-    // Statický blok se spustí jednou při prvním načtení třídy
+    // Static constructor for initial logger welcome text
     static {
         System.out.println("======================================================================================");
         System.out.println("   ____                            ____           _            _          _   _             \n" +
@@ -20,11 +20,11 @@ public class Logger {
         System.out.println("======================================================================================");
     }
 
-    // Soukromý konstruktor zabraňuje vytvoření instance
-    private Logger() {
+    //Private constructor instead of static class like in CSharp
+    private Logger(){
     }
 
-    // Pomocná metoda pro získání formátovaného času
+    // Helper method for getting timestamp in right format
     private static String getTimestamp() {
         return LocalDateTime.now().format(FORMATTER);
     }

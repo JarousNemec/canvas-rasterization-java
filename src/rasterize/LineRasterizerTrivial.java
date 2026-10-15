@@ -28,14 +28,12 @@ public class LineRasterizerTrivial extends LineRasterizer {
             }
             float k = dy / dx;
             float q = y1 - k * x1; //y = kx + q -> q = y - kx
-
             for (int x = x1; x <= x2; x++) {
                 int y = (int) (k * x + q);
-                raster.setPixel(x, y, 0xff00ff);
+                raster.setPixel(x, y, color);
             }
 
         } else {
-
             if (y1 > y2) {
                 int temp = x1;
                 x1 = x2;
@@ -48,7 +46,7 @@ public class LineRasterizerTrivial extends LineRasterizer {
             float q = x1 - k * y1;
             for (int y = y1; y <= y2; y++) {
                 int x = (int) (k * y + q);
-                raster.setPixel(x, y, 0xff00ff);
+                raster.setPixel(x, y, color);
             }
         }
     }

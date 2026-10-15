@@ -1,11 +1,12 @@
 package controller;
 
+import mode.DrawingMode;
 import model.Point2D;
 import model.Polygon;
 import rasterize.LineRasterizer;
-import rasterize.LineRasterizerGraphics;
 import rasterize.LineRasterizerTrivial;
 import rasterize.PolygonRasterizer;
+import utils.Logger;
 import view.Panel;
 
 import java.awt.event.KeyAdapter;
@@ -18,9 +19,11 @@ public class Controller2D {
 
     // Rasterizers
     private LineRasterizer lineRasterizer;
-    private PolygonRasterizer polygonRasterizer;
+    private final PolygonRasterizer polygonRasterizer;
 
-    private Polygon polygon;
+    private final Polygon polygon;
+    private final DrawingMode drawingMode = DrawingMode.POLYGON;
+    private boolean previewEnabled = false;
 
     public Controller2D(Panel panel) {
         this.panel = panel;
@@ -36,9 +39,36 @@ public class Controller2D {
     private void initListeners() {
         panel.addMouseListener(new MouseAdapter() {
             @Override
+            public void mouseReleased(MouseEvent e) {
+                if (e.getButton() == MouseEvent.BUTTON1) {
+                    if (drawingMode == DrawingMode.POLYGON) {
+                        polygon.addPoint(new Point2D(e.getX(), e.getY()));
+                        Logger.info("New point: " + e.getX() + ", " + e.getY() + " has been added to polygon.");
+
+                        previewEnabled = false;
+                        drawScene();
+                        Logger.info("Polygon preview disabled.");
+                    }
+                }
+            }
+
+            @Override
             public void mousePressed(MouseEvent e) {
-                polygon.addPoint(new Point2D(e.getX(), e.getY()));
-                drawScene();
+                if (e.getButton() == MouseEvent.BUTTON1) {
+                    if (drawingMode == DrawingMode.POLYGON) {
+                        previewEnabled = true;
+                        drawScene();
+                        Logger.info("Polygon preview enabled.");
+                    }
+                }
+            }
+        });
+        panel.addMouseMotionListener(new MouseAdapter() {
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                if (drawingMode == DrawingMode.POLYGON && previewEnabled) {
+                    drawScene();
+                }
             }
         });
         panel.addKeyListener(new KeyAdapter() {
@@ -48,6 +78,7 @@ public class Controller2D {
                 if (e.getKeyChar() == 'c' || e.getKeyChar() == 'C') {
                     polygon.clear();
                     drawScene();
+                    Logger.warning("User clear the scene.");
                 }
             }
         });
@@ -56,9 +87,11 @@ public class Controller2D {
     private void drawScene() {
         panel.getRaster().clear();
 
-        // TODO: interactive line for better point placing
         polygonRasterizer.rasterize(polygon);
-
+        if (previewEnabled) {
+            var mousePosition = panel.getMousePosition();
+            polygonRasterizer.rasterizePointPreview(mousePosition.x, mousePosition.y, polygon);
+        }
         panel.repaint();
     }
 }

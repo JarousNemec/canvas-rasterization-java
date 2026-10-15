@@ -2,9 +2,14 @@ package rasterize;
 
 import model.Point2D;
 import model.Polygon;
+import utils.ColorUtils;
+
+import java.awt.*;
 
 public class PolygonRasterizer {
     private final LineRasterizer lineRasterizer;
+    private static final int PREVIEW_COLOR = ColorUtils.toRgbInt(Color.ORANGE);
+    private static final int ALERT_COLOR = ColorUtils.toRgbInt(Color.red);
 
     public PolygonRasterizer(LineRasterizer lineRasterizer) {
         this.lineRasterizer = lineRasterizer;
@@ -26,5 +31,16 @@ public class PolygonRasterizer {
 
             lineRasterizer.rasterize(p1, p2);
         }
+    }
+
+    public void rasterizePointPreview(int x, int y, Polygon polygon) {
+        if (polygon.getSize() < 2)
+            return;
+        lineRasterizer.setColor(PREVIEW_COLOR);
+        lineRasterizer.rasterize(x, y, polygon.getFirst());
+        lineRasterizer.rasterize(x, y, polygon.getLast());
+        lineRasterizer.setColor(ALERT_COLOR);
+        lineRasterizer.rasterize(polygon.getFirst(), polygon.getLast());
+        lineRasterizer.resetColor();
     }
 }
