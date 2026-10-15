@@ -17,6 +17,7 @@ public class LineRasterizerTrivial extends LineRasterizer {
 
         //Check for dividing by zero
         if (dx == 0 && dy == 0) {
+            raster.setPixel(x1, y1, color);
             return;
         }
 
