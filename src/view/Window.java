@@ -7,9 +7,9 @@ public class Window extends JFrame {
 
     private final Panel panel;
 
-    public Window(int width, int height) {
+    public Window(int width, int height, String title) {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setTitle("Canvas Rasterization");
+        setTitle(title);
         setVisible(true);
 
         panel = new Panel(width, height);

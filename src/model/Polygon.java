@@ -21,4 +21,15 @@ public class Polygon {
     public int getSize() {
         return points.size();
     }
+
+    public Point2D getFirst(){
+        return points.getFirst();
+    }
+    public Point2D getLast(){
+        return points.getLast();
+    }
+
+    public void clear() {
+        points.clear();
+    }
 }

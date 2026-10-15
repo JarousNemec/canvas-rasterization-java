@@ -4,23 +4,27 @@ import model.Point2D;
 import model.Polygon;
 
 public class PolygonRasterizer {
-    private LineRasterizer lineRasterizer;
+    private final LineRasterizer lineRasterizer;
 
     public PolygonRasterizer(LineRasterizer lineRasterizer) {
         this.lineRasterizer = lineRasterizer;
     }
 
     public void rasterize(Polygon polygon) {
-        // TODO: kontrola, jestli je min počet vrcholů
+        if (polygon.getSize() < 2)
+            return;
+        if (polygon.getSize() > 2) {
+            Point2D first = polygon.getFirst();
+            Point2D last = polygon.getLast();
+            lineRasterizer.rasterize(first, last);
+        }
+        for (int i = 0; i < polygon.getSize() - 1; i++) {
+            int indexP1 = i;
+            int indexP2 = i + 1;
+            Point2D p1 = polygon.getPoint(indexP1);
+            Point2D p2 = polygon.getPoint(indexP2);
 
-        for(int i = 0; i < polygon.getSize(); i++) {
-            int indexA = i;
-            // Pozor, abych nesahal mimo seznam a zráoveˇmn chci spojit poslední point s nultým
-            int indexB = i + 1;
-            Point2D a = polygon.getPoint(indexA);
-            Point2D b = polygon.getPoint(indexB);
-
-            // TODO: rasterizovat úsečku od a do b
+            lineRasterizer.rasterize(p1, p2);
         }
     }
 }

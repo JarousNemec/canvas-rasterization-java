@@ -25,8 +25,7 @@ public class Controller2D {
     public Controller2D(Panel panel) {
         this.panel = panel;
 
-        lineRasterizer = new LineRasterizerGraphics(panel.getRaster());
-//        lineRasterizer = new LineRasterizerTrivial(panel.getRaster());
+        lineRasterizer = new LineRasterizerTrivial(panel.getRaster());
         polygonRasterizer = new PolygonRasterizer(lineRasterizer);
 
         polygon = new Polygon();
@@ -42,12 +41,22 @@ public class Controller2D {
                 drawScene();
             }
         });
+        panel.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                super.keyPressed(e);
+                if (e.getKeyChar() == 'c' || e.getKeyChar() == 'C') {
+                    polygon.clear();
+                    drawScene();
+                }
+            }
+        });
     }
 
     private void drawScene() {
         panel.getRaster().clear();
 
-        // TODO: line rasterizer
+        // TODO: interactive line for better point placing
         polygonRasterizer.rasterize(polygon);
 
         panel.repaint();

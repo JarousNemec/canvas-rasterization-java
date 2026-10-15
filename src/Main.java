@@ -1,15 +1,11 @@
 import controller.Controller2D;
+import utils.Logger;
 import view.Window;
 
 public class Main {
     public static void main(String[] args) {
-        Window window = new Window(800, 600);
+        Window window = new Window(800, 600,"Canvas Rasterization");
         new Controller2D(window.getPanel());
-
-        int a = 5;
-        int b = 3;
-        float c = a / (float) b;
-
-        System.out.println(c);
+        Logger.info("Rasterization has been started...");
     }
 }

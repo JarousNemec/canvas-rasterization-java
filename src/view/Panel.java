@@ -5,11 +5,10 @@ import raster.RasterBufferedImage;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.image.BufferedImage;
 
 public class Panel extends JPanel {
 
-    private Raster raster;
+    private final Raster raster;
 
     public Panel(int width, int height) {
         setPreferredSize(new Dimension(width, height));

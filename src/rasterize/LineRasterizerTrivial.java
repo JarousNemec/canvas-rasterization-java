@@ -51,6 +51,5 @@ public class LineRasterizerTrivial extends LineRasterizer {
                 raster.setPixel(x, y, 0xff00ff);
             }
         }
-
     }
 }
