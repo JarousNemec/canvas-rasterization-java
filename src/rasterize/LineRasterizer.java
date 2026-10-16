@@ -1,8 +1,10 @@
 package rasterize;
 
+import mode.RasterizationMode;
 import model.Point2D;
 import raster.Raster;
 import utils.ColorUtils;
+import utils.Logger;
 
 import java.awt.*;
 
@@ -10,6 +12,8 @@ public abstract class LineRasterizer {
     protected Raster raster;
     protected int defaultColor = ColorUtils.toRgbInt(Color.GRAY);
     protected int color = defaultColor;
+    protected static final int PREVIEW_COLOR = ColorUtils.toRgbInt(Color.ORANGE);
+    protected static final int ALERT_COLOR = ColorUtils.toRgbInt(Color.red);
 
     public LineRasterizer(Raster raster) {
         this.raster = raster;
@@ -40,19 +44,39 @@ public abstract class LineRasterizer {
         this.color = defaultColor;
     }
 
+    public void rasterize(int x1, int y1, int x2, int y2) {
+        rasterize(x1, y2, x2, y2, RasterizationMode.NORMAL);
+    }
+
     public void rasterize(Point2D p1, Point2D p2) {
-        rasterize(p1.getX(), p1.getY(), p2.getX(), p2.getY());
+        rasterize(p1.getX(), p1.getY(), p2.getX(), p2.getY(), RasterizationMode.NORMAL);
     }
 
     public void rasterize(int x1, int y1, Point2D p2) {
-        rasterize(x1, y1, p2.getX(), p2.getY());
+        rasterize(x1, y1, p2.getX(), p2.getY(), RasterizationMode.NORMAL);
     }
 
     public void rasterize(Point2D p1, int x2, int y2) {
-        rasterize(p1.getX(), p1.getY(), x2, y2);
+        rasterize(p1.getX(), p1.getY(), x2, y2, RasterizationMode.NORMAL);
     }
 
-    public void rasterize(int x1, int y1, int x2, int y2) {
-        System.out.println("===== rasterize předek =====");
+    public void rasterize(Point2D p1, Point2D p2, RasterizationMode mode) {
+        rasterize(p1.getX(), p1.getY(), p2.getX(), p2.getY(), mode);
+    }
+
+    public void rasterize(int x1, int y1, Point2D p2, RasterizationMode mode) {
+        rasterize(x1, y1, p2.getX(), p2.getY(), mode);
+    }
+
+    public void rasterize(Point2D p1, int x2, int y2, RasterizationMode mode) {
+        rasterize(p1.getX(), p1.getY(), x2, y2, mode);
+    }
+
+    public void rasterize(int x1, int y1, int x2, int y2, RasterizationMode mode) {
+        Logger.error("Calling abstract rasterize method in LineRasterizer");
+    }
+
+    public boolean isPointInRaster(int x, int y) {
+        return (x >= 0 || y >= 0 || x < raster.getWidth() || y < raster.getHeight());
     }
 }
