@@ -1,6 +1,6 @@
 package rasterize;
 
-import mode.RasterizationMode;
+import constants.RasterizationMode;
 import model.Point2D;
 import raster.Raster;
 import utils.ColorUtils;
@@ -72,6 +72,7 @@ public abstract class LineRasterizer {
         rasterize(p1.getX(), p1.getY(), x2, y2, mode);
     }
 
+    // Every rasterize method overload uses this method in result
     public void rasterize(int x1, int y1, int x2, int y2, RasterizationMode mode) {
         Logger.error("Calling abstract rasterize method in LineRasterizer");
     }

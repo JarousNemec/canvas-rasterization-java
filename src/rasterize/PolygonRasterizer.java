@@ -1,16 +1,11 @@
 package rasterize;
 
-import mode.RasterizationMode;
+import constants.RasterizationMode;
 import model.Point2D;
 import model.Polygon;
-import utils.ColorUtils;
-
-import java.awt.*;
 
 public class PolygonRasterizer {
     private final LineRasterizer lineRasterizer;
-    private static final int PREVIEW_COLOR = ColorUtils.toRgbInt(Color.ORANGE);
-    private static final int ALERT_COLOR = ColorUtils.toRgbInt(Color.red);
 
     public PolygonRasterizer(LineRasterizer lineRasterizer) {
         this.lineRasterizer = lineRasterizer;

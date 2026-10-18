@@ -1,6 +1,6 @@
 package rasterize;
 
-import mode.RasterizationMode;
+import constants.RasterizationMode;
 import raster.Raster;
 
 //Implementation of line rasterizer that uses the Trivial (Naive) algorithm

@@ -1,4 +1,4 @@
-package mode;
+package constants;
 
 public enum DrawingMode {
     LINE,
