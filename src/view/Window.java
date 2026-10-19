@@ -34,16 +34,28 @@ public class Window extends JFrame {
         var modeComboBox = new JComboBox<String>();
         modeComboBox.addItem("Line");
         modeComboBox.addItem("Polygon");
+        modeComboBox.addItem("Filler");
         modeComboBox.setMaximumSize(modeComboBox.getPreferredSize());
         modeComboBox.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
                 String selected = (String) e.getItem();
 
                 //todo: do the parsing more general
-                DrawingMode newMode = "Polygon".equals(selected) ? DrawingMode.POLYGON : DrawingMode.LINE;
+
 
                 if (onModeChangedListener != null) {
-                    onModeChangedListener.accept(newMode);
+                    switch (selected){
+                        case "Line":
+                            onModeChangedListener.accept(DrawingMode.LINE);
+                            break;
+                        case "Polygon":
+                            onModeChangedListener.accept(DrawingMode.POLYGON);
+                            break;
+                        case "Filler":
+                            onModeChangedListener.accept(DrawingMode.FILLER);
+                            break;
+                    }
+
                 }
             }
         });

@@ -5,4 +5,5 @@ public interface Raster {
     int getWidth();
     int getHeight();
     void clear();
+    int getPixel(int x, int y);
 }

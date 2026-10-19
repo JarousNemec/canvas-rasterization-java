@@ -2,12 +2,14 @@ package controller;
 
 import constants.DrawingMode;
 import constants.RasterizationMode;
+import fill.SeedFiller;
 import model.Line;
 import model.Point2D;
 import model.Polygon;
 import rasterize.LineRasterizer;
 import rasterize.LineRasterizerTrivial;
 import rasterize.PolygonRasterizer;
+import utils.ColorUtils;
 import utils.Logger;
 import view.Panel;
 import view.Window;
@@ -24,6 +26,9 @@ public class Controller2D {
     private final LineRasterizer lineRasterizer;
     private final PolygonRasterizer polygonRasterizer;
 
+    //Filler
+    private final SeedFiller seedFiller;
+
     // Lists of canvas objects
     private final ArrayList<Line> lines;
     private final ArrayList<Polygon> polygons;
@@ -38,6 +43,8 @@ public class Controller2D {
 
         lineRasterizer = new LineRasterizerTrivial(panel.getRaster());
         polygonRasterizer = new PolygonRasterizer(lineRasterizer);
+
+        seedFiller = new SeedFiller(panel.getRaster());
 
         lines = new ArrayList<>();
         polygons = new ArrayList<>();
@@ -112,7 +119,12 @@ public class Controller2D {
                     } else if (drawingMode == DrawingMode.LINE && isPointInView(e.getPoint())) {
                         lines.getLast().setEnd(new Point2D(e.getX(), e.getY()));
                         Logger.info("New point: " + e.getX() + ", " + e.getY() + " has been added to polygon.");
+                    } else if(drawingMode == DrawingMode.FILLER  && isPointInView(e.getPoint())){
+                        seedFiller.setSeed(new Point2D(e.getX(), e.getY()));
+                        seedFiller.setBackgroundColor(ColorUtils.toRgbInt(Color.black));
+                        seedFiller.setFillColor(ColorUtils.toRgbInt(Color.GREEN));
                     }
+
                     enablePreview(false);
                     drawScene();
                 }
@@ -164,7 +176,7 @@ public class Controller2D {
                     lineRasterizer.rasterize(lines.getLast().getStart(), (int) mousePosition.getX(), (int) mousePosition.getY(), RasterizationMode.PREVIEW);
             }
         }
-
+        seedFiller.fill();
         panel.repaint();
     }
 }
