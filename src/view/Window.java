@@ -1,6 +1,6 @@
 package view;
 
-import constants.DrawingMode;
+import controller.DrawingMode;
 
 import javax.swing.*;
 import java.awt.*;
@@ -34,22 +34,26 @@ public class Window extends JFrame {
         var modeComboBox = new JComboBox<String>();
         modeComboBox.addItem("Line");
         modeComboBox.addItem("Polygon");
-        modeComboBox.addItem("Filler");
+        modeComboBox.addItem("Point");
+        modeComboBox.addItem("Fill");
         modeComboBox.setMaximumSize(modeComboBox.getPreferredSize());
         modeComboBox.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
                 String selected = (String) e.getItem();
 
                 if (onModeChangedListener != null) {
-                    switch (selected){
+                    switch (selected) {
                         case "Line":
                             onModeChangedListener.accept(DrawingMode.LINE);
                             break;
                         case "Polygon":
                             onModeChangedListener.accept(DrawingMode.POLYGON);
                             break;
-                        case "Filler":
+                        case "Fill":
                             onModeChangedListener.accept(DrawingMode.FILLER);
+                            break;
+                        case "Point":
+                            onModeChangedListener.accept(DrawingMode.POINT);
                             break;
                     }
                 }
@@ -74,6 +78,7 @@ public class Window extends JFrame {
         canvasPanel.setFocusable(true);
         canvasPanel.grabFocus();
     }
+
     public void setOnModeChanged(Consumer<DrawingMode> listener) {
         this.onModeChangedListener = listener;
     }

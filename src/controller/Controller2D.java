@@ -1,7 +1,6 @@
 package controller;
 
-import constants.DrawingMode;
-import constants.RasterizationMode;
+import rasterize.RasterizationMode;
 import fill.SeedFiller;
 import model.*;
 import model.Polygon;
@@ -9,6 +8,8 @@ import rasterize.LineRasterizer;
 import rasterize.LineRasterizerTrivial;
 import rasterize.PolygonRasterizer;
 import rasterize.RasterizationContext;
+import select.Hit;
+import select.SelectionService;
 import utils.Logger;
 import view.CanvasPanel;
 import view.Window;
@@ -33,6 +34,9 @@ public class Controller2D {
     //Model that contains all rasterizables and allowing us to render them all in one cycle in order they were added
     private final CanvasModel canvasModel;
 
+    //Service that serves information if the clicked point hit some component
+    private final SelectionService selectionService;
+
     private Polygon currentPolygon = new Polygon();
     private Line currentLine = new Line();
 
@@ -52,6 +56,7 @@ public class Controller2D {
         rasterizationContext = new RasterizationContext(lineRasterizer, polygonRasterizer, seedFiller);
         canvasModel = new CanvasModel();
 
+        selectionService = new SelectionService(canvasModel);
 
         initListeners();
         initKeyBindings();
@@ -84,7 +89,8 @@ public class Controller2D {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (drawingMode == DrawingMode.POLYGON && currentPolygon.getSize() > 0) {
-                    canvasModel.addRasterizable(currentPolygon);
+                    if (!canvasModel.contains(currentPolygon))
+                        canvasModel.addRasterizable(currentPolygon);
                     currentPolygon = new Polygon();
                     Logger.info("Added new polygon.");
                 }
@@ -97,14 +103,23 @@ public class Controller2D {
             @Override
             public void mousePressed(MouseEvent e) {
                 if (e.getButton() == MouseEvent.BUTTON1) {
-                    if (drawingMode == DrawingMode.LINE && isPointInView(e.getPoint())) {
+                    if (drawingMode == DrawingMode.LINE && isPointInCanvas(e.getPoint())) {
                         currentLine = new Line();
                         currentLine.setStart(new Point2D(e.getX(), e.getY()));
                         var mousePosition = canvasPanel.getMousePosition();
                         if (mousePosition != null) {
                             currentLine.setEnd((int) mousePosition.getX(), (int) mousePosition.getY());
                         }
-                        Logger.info("New line: " + currentLine.toString());
+                    } else if (drawingMode == DrawingMode.POINT && isPointInCanvas(e.getPoint())) {
+                        var mousePosition = canvasPanel.getMousePosition();
+                        if (mousePosition != null) {
+                            Hit result = selectionService.findHit((int) mousePosition.getX(), (int) mousePosition.getY());
+                            if (result != null) {
+                                Logger.info("Found an existing "+result.toString());
+                            }else{
+                                Logger.info("Hit not found.");
+                            }
+                        }
                     }
                     enablePreview(true);
                     drawScene();
@@ -114,17 +129,19 @@ public class Controller2D {
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (e.getButton() == MouseEvent.BUTTON1) {
-                    if (drawingMode == DrawingMode.POLYGON && isPointInView(e.getPoint())) {
+                    if (drawingMode == DrawingMode.POLYGON && isPointInCanvas(e.getPoint())) {
                         currentPolygon.addPoint(new Point2D(e.getX(), e.getY()));
-                        canvasModel.addRasterizable(currentPolygon);
+                        if (!canvasModel.contains(currentPolygon))
+                            canvasModel.addRasterizable(currentPolygon);
                         Logger.info("New point: " + e.getX() + ", " + e.getY() + " has been added to polygon.");
 
-                    } else if (drawingMode == DrawingMode.LINE && isPointInView(e.getPoint())) {
+                    } else if (drawingMode == DrawingMode.LINE && isPointInCanvas(e.getPoint())) {
                         currentLine.setEnd(new Point2D(e.getX(), e.getY()));
-                        canvasModel.addRasterizable(currentLine);
-                        Logger.info("New point: " + e.getX() + ", " + e.getY() + " has been added to polygon.");
+                        if (!canvasModel.contains(currentLine))
+                            canvasModel.addRasterizable(currentLine);
+                        Logger.info("New line added: " + currentLine.toString());
 
-                    } else if (drawingMode == DrawingMode.FILLER && isPointInView(e.getPoint())) {
+                    } else if (drawingMode == DrawingMode.FILLER && isPointInCanvas(e.getPoint())) {
                         var seedFill = new SeedFill(new Point2D(e.getX(), e.getY()), Color.GREEN.getRGB());
                         canvasModel.addRasterizable(seedFill);
                     }
@@ -143,7 +160,7 @@ public class Controller2D {
         });
     }
 
-    private boolean isPointInView(Point p) {
+    private boolean isPointInCanvas(Point p) {
         return canvasPanel.getRaster().contains((int) p.getX(), (int) p.getY());
     }
 

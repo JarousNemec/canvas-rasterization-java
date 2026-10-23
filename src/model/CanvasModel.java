@@ -13,6 +13,19 @@ public class CanvasModel {
     public List<Rasterizable> getRasterizables() {
         return rasterizables;
     }
+
+    public int getRasterizablesCount() {
+        return rasterizables.size();
+    }
+
+    public Rasterizable getRasterizable(int index) {
+        return rasterizables.get(index);
+    }
+
+    public boolean contains(Rasterizable rasterizable) {
+        return rasterizables.contains(rasterizable);
+    }
+
     public void addRasterizable(Rasterizable rasterizable) {
         rasterizables.add(rasterizable);
     }

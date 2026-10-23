@@ -1,6 +1,5 @@
 package rasterize;
 
-import constants.RasterizationMode;
 import model.Point2D;
 import model.Polygon;
 

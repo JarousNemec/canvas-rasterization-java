@@ -1,7 +1,8 @@
-package constants;
+package controller;
 
 public enum DrawingMode {
     LINE,
     POLYGON,
-    FILLER
+    FILLER,
+    POINT
 }

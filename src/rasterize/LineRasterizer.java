@@ -1,6 +1,5 @@
 package rasterize;
 
-import constants.RasterizationMode;
 import model.Point2D;
 import raster.Raster;
 import utils.Logger;
@@ -44,7 +43,7 @@ public abstract class LineRasterizer {
     }
 
     public void rasterize(int x1, int y1, int x2, int y2) {
-        rasterize(x1, y2, x2, y2, RasterizationMode.NORMAL);
+        rasterize(x1, y1, x2, y2, RasterizationMode.NORMAL);
     }
 
     public void rasterize(Point2D p1, Point2D p2) {
@@ -77,6 +76,6 @@ public abstract class LineRasterizer {
     }
 
     public boolean isPointInRaster(int x, int y) {
-        return (x >= 0 || y >= 0 || x < raster.getWidth() || y < raster.getHeight());
+        return (x >= 0 && y >= 0 && x < raster.getWidth() && y < raster.getHeight());
     }
 }
