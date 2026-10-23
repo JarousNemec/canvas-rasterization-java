@@ -3,17 +3,16 @@ package rasterize;
 import constants.RasterizationMode;
 import model.Point2D;
 import raster.Raster;
-import utils.ColorUtils;
 import utils.Logger;
 
 import java.awt.*;
 
 public abstract class LineRasterizer {
     protected Raster raster;
-    protected int defaultColor = ColorUtils.toRgbInt(Color.GRAY);
+    protected int defaultColor = Color.GRAY.getRGB();
     protected int color = defaultColor;
-    protected static final int PREVIEW_COLOR = ColorUtils.toRgbInt(Color.ORANGE);
-    protected static final int ALERT_COLOR = ColorUtils.toRgbInt(Color.red);
+    protected static final int PREVIEW_COLOR = Color.ORANGE.getRGB();
+    protected static final int ALERT_COLOR = Color.red.getRGB();
 
     public LineRasterizer(Raster raster) {
         this.raster = raster;

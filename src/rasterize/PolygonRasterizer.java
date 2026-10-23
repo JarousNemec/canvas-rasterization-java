@@ -12,16 +12,13 @@ public class PolygonRasterizer {
     }
 
     public void rasterize(Polygon polygon) {
-        if (polygon.getSize() < 2)
+        int n = polygon.getSize();
+        if (n < 2)
             return;
-        if (polygon.getSize() > 2) {
-            Point2D first = polygon.getFirst();
-            Point2D last = polygon.getLast();
-            lineRasterizer.rasterize(first, last);
-        }
-        for (int i = 0; i < polygon.getSize() - 1; i++) {
+
+        for (int i = 0; i < n; i++) {
             int indexP1 = i;
-            int indexP2 = i + 1;
+            int indexP2 = (i + 1) % n;
             Point2D p1 = polygon.getPoint(indexP1);
             Point2D p2 = polygon.getPoint(indexP2);
 
@@ -35,6 +32,5 @@ public class PolygonRasterizer {
             lineRasterizer.rasterize(x, y, polygon.getLast(), RasterizationMode.PREVIEW);
             lineRasterizer.rasterize(polygon.getFirst(), polygon.getLast(), RasterizationMode.ALERT);
         }
-
     }
 }

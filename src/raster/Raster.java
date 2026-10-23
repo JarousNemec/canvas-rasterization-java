@@ -6,4 +6,5 @@ public interface Raster {
     int getHeight();
     void clear();
     int getPixel(int x, int y);
+    boolean contains(int x, int y);
 }

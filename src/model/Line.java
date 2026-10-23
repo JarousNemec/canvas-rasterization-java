@@ -1,6 +1,9 @@
 package model;
 
-public class Line {
+import rasterize.Rasterizable;
+import rasterize.RasterizationContext;
+
+public class Line implements Rasterizable {
     private Point2D start;
     private Point2D end;
 
@@ -41,5 +44,10 @@ public class Line {
     @Override
     public String toString() {
         return "Line{" + "start= X:" + start.getX() + " ,Y:" + start.getY() + ", end= X:" + end.getX() + " ,Y:" + end.getY() + '}';
+    }
+
+    @Override
+    public void rasterize(RasterizationContext context) {
+        context.getLineRasterizer().rasterize(start, end);
     }
 }

@@ -12,7 +12,7 @@ public class RasterBufferedImage implements Raster {
 
     @Override
     public void setPixel(int x, int y, int color) {
-        if (x > 0 && y > 0 && x < getWidth() && y < getHeight())
+        if (contains(x, y))
             image.setRGB(x, y, color);
     }
 
@@ -34,9 +34,12 @@ public class RasterBufferedImage implements Raster {
 
     @Override
     public int getPixel(int x, int y) {
-        if (x > 0 && y > 0 && x < getWidth() && y < getHeight())
-            return image.getRGB(x,y);
-        return -1;
+        return image.getRGB(x, y);
+    }
+
+    @Override
+    public boolean contains(int x, int y) {
+        return x >= 0 && y >= 0 && x < getWidth() && y < getHeight();
     }
 
     public BufferedImage getImage() {

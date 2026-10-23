@@ -9,7 +9,7 @@ import java.util.function.Consumer;
 
 public class Window extends JFrame {
 
-    private Panel panel;
+    private CanvasPanel canvasPanel;
     private static final int PANEL_WIDTH = 800;
     private static final int PANEL_HEIGHT = 600;
     private static final String TITLE = "Canvas Rasterization";
@@ -40,9 +40,6 @@ public class Window extends JFrame {
             if (e.getStateChange() == ItemEvent.SELECTED) {
                 String selected = (String) e.getItem();
 
-                //todo: do the parsing more general
-
-
                 if (onModeChangedListener != null) {
                     switch (selected){
                         case "Line":
@@ -55,7 +52,6 @@ public class Window extends JFrame {
                             onModeChangedListener.accept(DrawingMode.FILLER);
                             break;
                     }
-
                 }
             }
         });
@@ -64,25 +60,25 @@ public class Window extends JFrame {
         toolBar.add(new JLabel("Mode: "));
 
         //init main drawing panel
-        panel = new Panel(PANEL_WIDTH, PANEL_HEIGHT);
+        canvasPanel = new CanvasPanel(PANEL_WIDTH, PANEL_HEIGHT);
 
         //add components to the window container
         toolBar.add(modeComboBox);
         add(toolBar, BorderLayout.NORTH);
-        add(panel);
+        add(canvasPanel);
 
         //set ideal window size
         pack();
 
         //set focus on the drawing panel
-        panel.setFocusable(true);
-        panel.grabFocus();
+        canvasPanel.setFocusable(true);
+        canvasPanel.grabFocus();
     }
     public void setOnModeChanged(Consumer<DrawingMode> listener) {
         this.onModeChangedListener = listener;
     }
 
-    public Panel getPanel() {
-        return panel;
+    public CanvasPanel getPanel() {
+        return canvasPanel;
     }
 }

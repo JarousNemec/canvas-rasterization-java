@@ -3,24 +3,22 @@ package controller;
 import constants.DrawingMode;
 import constants.RasterizationMode;
 import fill.SeedFiller;
-import model.Line;
-import model.Point2D;
+import model.*;
 import model.Polygon;
 import rasterize.LineRasterizer;
 import rasterize.LineRasterizerTrivial;
 import rasterize.PolygonRasterizer;
-import utils.ColorUtils;
+import rasterize.RasterizationContext;
 import utils.Logger;
-import view.Panel;
+import view.CanvasPanel;
 import view.Window;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.ArrayList;
 
 public class Controller2D {
-    private final Panel panel;
+    private final CanvasPanel canvasPanel;
 
     // Rasterizers
     private final LineRasterizer lineRasterizer;
@@ -29,26 +27,31 @@ public class Controller2D {
     //Filler
     private final SeedFiller seedFiller;
 
-    // Lists of canvas objects
-    private final ArrayList<Line> lines;
-    private final ArrayList<Polygon> polygons;
+    //Rasterization Context containing all rasterizers
+    private final RasterizationContext rasterizationContext;
+
+    //Model that contains all rasterizables and allowing us to render them all in one cycle in order they were added
+    private final CanvasModel canvasModel;
+
+    private Polygon currentPolygon = new Polygon();
+    private Line currentLine = new Line();
 
     private DrawingMode drawingMode = DrawingMode.LINE;
 
     private boolean previewEnabled = false;
 
     public Controller2D(Window window) {
-        this.panel = window.getPanel();
+        this.canvasPanel = window.getPanel();
         initWindowEvents(window);
 
-        lineRasterizer = new LineRasterizerTrivial(panel.getRaster());
+        lineRasterizer = new LineRasterizerTrivial(canvasPanel.getRaster());
         polygonRasterizer = new PolygonRasterizer(lineRasterizer);
 
-        seedFiller = new SeedFiller(panel.getRaster());
+        seedFiller = new SeedFiller(canvasPanel.getRaster());
 
-        lines = new ArrayList<>();
-        polygons = new ArrayList<>();
-        polygons.add(new Polygon());
+        rasterizationContext = new RasterizationContext(lineRasterizer, polygonRasterizer, seedFiller);
+        canvasModel = new CanvasModel();
+
 
         initListeners();
         initKeyBindings();
@@ -63,10 +66,10 @@ public class Controller2D {
 
     private void initKeyBindings() {
         //keybindings for scene clearing
-        panel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke('c'), "clearAction");
-        panel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke('C'), "clearAction");
+        canvasPanel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke('c'), "clearAction");
+        canvasPanel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke('C'), "clearAction");
 
-        panel.getActionMap().put("clearAction", new AbstractAction() {
+        canvasPanel.getActionMap().put("clearAction", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 clearScene();
@@ -74,14 +77,15 @@ public class Controller2D {
         });
 
         //keybindings for scene clearing
-        panel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke('a'), "addAction");
-        panel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke('A'), "addAction");
+        canvasPanel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke('a'), "addAction");
+        canvasPanel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke('A'), "addAction");
 
-        panel.getActionMap().put("addAction", new AbstractAction() {
+        canvasPanel.getActionMap().put("addAction", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (drawingMode == DrawingMode.POLYGON && !polygons.isEmpty() && polygons.getLast().getSize() > 0) {
-                    polygons.add(new Polygon());
+                if (drawingMode == DrawingMode.POLYGON && currentPolygon.getSize() > 0) {
+                    canvasModel.addRasterizable(currentPolygon);
+                    currentPolygon = new Polygon();
                     Logger.info("Added new polygon.");
                 }
             }
@@ -89,18 +93,18 @@ public class Controller2D {
     }
 
     private void initListeners() {
-        panel.addMouseListener(new MouseAdapter() {
+        canvasPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
                 if (e.getButton() == MouseEvent.BUTTON1) {
                     if (drawingMode == DrawingMode.LINE && isPointInView(e.getPoint())) {
-                        lines.add(new Line());
-                        lines.getLast().setStart(new Point2D(e.getX(), e.getY()));
-                        var mousePosition = panel.getMousePosition();
+                        currentLine = new Line();
+                        currentLine.setStart(new Point2D(e.getX(), e.getY()));
+                        var mousePosition = canvasPanel.getMousePosition();
                         if (mousePosition != null) {
-                            lines.getLast().setEnd((int) mousePosition.getX(), (int) mousePosition.getY());
+                            currentLine.setEnd((int) mousePosition.getX(), (int) mousePosition.getY());
                         }
-                        Logger.info("New line: " + lines.getLast().toString());
+                        Logger.info("New line: " + currentLine.toString());
                     }
                     enablePreview(true);
                     drawScene();
@@ -111,26 +115,25 @@ public class Controller2D {
             public void mouseReleased(MouseEvent e) {
                 if (e.getButton() == MouseEvent.BUTTON1) {
                     if (drawingMode == DrawingMode.POLYGON && isPointInView(e.getPoint())) {
-                        if (polygons.isEmpty())
-                            polygons.add(new Polygon());
-                        polygons.getLast().addPoint(new Point2D(e.getX(), e.getY()));
+                        currentPolygon.addPoint(new Point2D(e.getX(), e.getY()));
+                        canvasModel.addRasterizable(currentPolygon);
                         Logger.info("New point: " + e.getX() + ", " + e.getY() + " has been added to polygon.");
 
                     } else if (drawingMode == DrawingMode.LINE && isPointInView(e.getPoint())) {
-                        lines.getLast().setEnd(new Point2D(e.getX(), e.getY()));
+                        currentLine.setEnd(new Point2D(e.getX(), e.getY()));
+                        canvasModel.addRasterizable(currentLine);
                         Logger.info("New point: " + e.getX() + ", " + e.getY() + " has been added to polygon.");
-                    } else if(drawingMode == DrawingMode.FILLER  && isPointInView(e.getPoint())){
-                        seedFiller.setSeed(new Point2D(e.getX(), e.getY()));
-                        seedFiller.setBackgroundColor(ColorUtils.toRgbInt(Color.black));
-                        seedFiller.setFillColor(ColorUtils.toRgbInt(Color.GREEN));
-                    }
 
+                    } else if (drawingMode == DrawingMode.FILLER && isPointInView(e.getPoint())) {
+                        var seedFill = new SeedFill(new Point2D(e.getX(), e.getY()), Color.GREEN.getRGB());
+                        canvasModel.addRasterizable(seedFill);
+                    }
                     enablePreview(false);
                     drawScene();
                 }
             }
         });
-        panel.addMouseMotionListener(new MouseAdapter() {
+        canvasPanel.addMouseMotionListener(new MouseAdapter() {
             @Override
             public void mouseDragged(MouseEvent e) {
                 if ((drawingMode == DrawingMode.POLYGON || drawingMode == DrawingMode.LINE) && previewEnabled) {
@@ -141,7 +144,7 @@ public class Controller2D {
     }
 
     private boolean isPointInView(Point p) {
-        return p.getX() >= 0 && p.getY() >= 0 && p.getX() < panel.getRaster().getWidth() && p.getY() < panel.getRaster().getHeight();
+        return canvasPanel.getRaster().contains((int) p.getX(), (int) p.getY());
     }
 
     private void enablePreview(boolean enable) {
@@ -150,33 +153,29 @@ public class Controller2D {
     }
 
     private void clearScene() {
-        polygons.clear();
-        lines.clear();
+        canvasModel.removeAllRasterizables();
+        currentLine = new Line();
+        currentPolygon = new Polygon();
         drawScene();
         Logger.warning("User clear the scene.");
     }
 
     private void drawScene() {
-        panel.getRaster().clear();
+        canvasPanel.getRaster().clear();
 
-        for (Line line : lines) {
-            lineRasterizer.rasterize(line.getStart(), line.getEnd());
-        }
-
-        for (Polygon polygon : polygons) {
-            polygonRasterizer.rasterize(polygon);
+        for (var rasterizable : canvasModel.getRasterizables()) {
+            rasterizable.rasterize(rasterizationContext);
         }
 
         if (previewEnabled) {
-            var mousePosition = panel.getMousePosition();
+            var mousePosition = canvasPanel.getMousePosition();
             if (mousePosition != null) {
-                if (drawingMode == DrawingMode.POLYGON && !polygons.isEmpty())
-                    polygonRasterizer.rasterizePointPreview((int) mousePosition.getX(), (int) mousePosition.getY(), polygons.getLast());
-                else if (drawingMode == DrawingMode.LINE)
-                    lineRasterizer.rasterize(lines.getLast().getStart(), (int) mousePosition.getX(), (int) mousePosition.getY(), RasterizationMode.PREVIEW);
+                if (drawingMode == DrawingMode.POLYGON && currentPolygon != null)
+                    polygonRasterizer.rasterizePointPreview((int) mousePosition.getX(), (int) mousePosition.getY(), currentPolygon);
+                else if (drawingMode == DrawingMode.LINE && currentLine != null)
+                    lineRasterizer.rasterize(currentLine.getStart(), (int) mousePosition.getX(), (int) mousePosition.getY(), RasterizationMode.PREVIEW);
             }
         }
-        seedFiller.fill();
-        panel.repaint();
+        canvasPanel.repaint();
     }
 }

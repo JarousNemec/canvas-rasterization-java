@@ -2,38 +2,87 @@ package fill;
 
 import model.Point2D;
 import raster.Raster;
-import utils.ColorUtils;
 
 import java.awt.*;
 
 public class SeedFiller implements Filler {
 
     private final Raster raster;
-    private int fillColor = ColorUtils.toRgbInt(Color.GREEN);
-    private int backgroundColor = ColorUtils.toRgbInt(Color.BLACK);
+    private int fillColor = Color.GREEN.getRGB();
+    private int backgroundColor = Color.BLACK.getRGB();
     private Point2D seed = null;
+
+    //Custom stack implementation
+    private final int[] stackX;
+    private final int[] stackY;
+
+    //directions x, y
+    private static final int[] DX = {-1, 1, 0, 0};
+    private static final int[] DY = {0, 0, -1, 1};
 
     public SeedFiller(Raster raster) {
         this.raster = raster;
+
+        //Init one custom stack same for every call
+        int width = raster.getWidth();
+        int height = raster.getHeight();
+        int maxSize = width * height;
+        stackX = new int[maxSize];
+        stackY = new int[maxSize];
     }
 
     @Override
     public void fill() {
-        if (seed == null)
+        if (seed == null || !raster.contains(seed.getX(), seed.getY()))
             return;
         backgroundColor = raster.getPixel(seed.getX(), seed.getY());
-        seedFill(seed.getX(), seed.getY());
+        if (backgroundColor == fillColor)
+            return;
+//        seedFillRecursion(seed.getX(), seed.getY());
+        seedFillStack();
     }
 
-    private void seedFill(int x, int y) {
+    private void seedFillStack() {
+        int top = 0;
+
+        stackX[top] = seed.getX();
+        stackY[top] = seed.getY();
+        top++;
+        raster.setPixel(seed.getX(), seed.getY(), fillColor);
+
+        while (top > 0) {
+            top--;
+            int x = stackX[top];
+            int y = stackY[top];
+
+            for (int i = 0; i < DX.length; i++) {
+                int nx = x + DX[i];
+                int ny = y + DY[i];
+                if (raster.contains(nx, ny)) {
+                    int pixelColor = raster.getPixel(nx, ny);
+                    if (backgroundColor == pixelColor) {
+                        raster.setPixel(nx, ny, fillColor);
+                        stackX[top] = nx;
+                        stackY[top] = ny;
+                        top++;
+                    }
+                }
+            }
+        }
+    }
+
+    //useless because it consumes whole stack and than overflows, better use Stack or Queue implementation
+    private void seedFillRecursion(int x, int y) {
+        if (!raster.contains(x, y))
+            return;
         int pixelColor = raster.getPixel(x, y);
-        if (pixelColor == -1 || pixelColor != backgroundColor)
+        if (backgroundColor != pixelColor)
             return;
         raster.setPixel(x, y, fillColor);
-        seedFill(x-1,y);
-        seedFill(x+1,y);
-        seedFill(x,y-1);
-        seedFill(x,y+1);
+        seedFillRecursion(x - 1, y);
+        seedFillRecursion(x + 1, y);
+        seedFillRecursion(x, y - 1);
+        seedFillRecursion(x, y + 1);
     }
 
     public int getBackgroundColor() {

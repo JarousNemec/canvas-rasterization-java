@@ -1,15 +1,17 @@
 package model;
 
+import rasterize.Rasterizable;
+import rasterize.RasterizationContext;
+
 import java.util.ArrayList;
 import java.util.List;
 
-public class Polygon {
+public class Polygon implements Rasterizable {
     private final List<Point2D> points;
 
     public Polygon() {
         points = new ArrayList<>();
     }
-
     public void addPoint(Point2D point) {
         points.add(point);
     }
@@ -31,5 +33,10 @@ public class Polygon {
 
     public void clear() {
         points.clear();
+    }
+
+    @Override
+    public void rasterize(RasterizationContext context) {
+        context.getPolygonRasterizer().rasterize(this);
     }
 }
