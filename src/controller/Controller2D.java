@@ -39,7 +39,7 @@ public class Controller2D {
 
     private Selectable currentlySelected = null;
 
-    private DrawingMode drawingMode = DrawingMode.LINE;
+    private UserMode userMode = UserMode.LINE;
 
     private boolean previewEnabled = false;
 
@@ -62,15 +62,15 @@ public class Controller2D {
     }
 
     private void initWindowEvents(Window window) {
-        window.setOnModeChanged(this::setDrawingMode);
+        window.setOnModeChanged(this::setUserMode);
     }
 
-    private void setDrawingMode(DrawingMode mode) {
-        Logger.info("Drawing mode changing from: " + this.drawingMode + " to: " + mode);
-        if (this.drawingMode == DrawingMode.SELECT && mode != DrawingMode.SELECT) {
+    private void setUserMode(UserMode mode) {
+        Logger.info("Drawing mode changing from: " + this.userMode + " to: " + mode);
+        if (this.userMode == UserMode.SELECT && mode != UserMode.SELECT) {
             currentlySelected = null;
         }
-        this.drawingMode = mode;
+        this.userMode = mode;
     }
 
     private void initKeyBindings() {
@@ -92,7 +92,7 @@ public class Controller2D {
         canvasPanel.getActionMap().put("addAction", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (drawingMode == DrawingMode.POLYGON && currentPolygon.getSize() > 0) {
+                if (userMode == UserMode.POLYGON && currentPolygon.getSize() > 0) {
                     if (!canvasModel.contains(currentPolygon))
                         canvasModel.addRasterizable(currentPolygon);
                     currentPolygon = new Polygon();
@@ -107,14 +107,14 @@ public class Controller2D {
             @Override
             public void mousePressed(MouseEvent e) {
                 if (e.getButton() == MouseEvent.BUTTON1) {
-                    if (drawingMode == DrawingMode.LINE && isPointInCanvas(e.getPoint())) {
+                    if (userMode == UserMode.LINE && isPointInCanvas(e.getPoint())) {
                         currentLine = new Line();
                         currentLine.setStart(new Point2D(e.getX(), e.getY()));
                         var mousePosition = canvasPanel.getMousePosition();
                         if (mousePosition != null) {
                             currentLine.setEnd((int) mousePosition.getX(), (int) mousePosition.getY());
                         }
-                    } else if (drawingMode == DrawingMode.SELECT && isPointInCanvas(e.getPoint())) {
+                    } else if (userMode == UserMode.SELECT && isPointInCanvas(e.getPoint())) {
                         var mousePosition = canvasPanel.getMousePosition();
                         if (mousePosition != null) {
                             Hit result = selectionService.findHit((int) mousePosition.getX(), (int) mousePosition.getY());
@@ -135,19 +135,19 @@ public class Controller2D {
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (e.getButton() == MouseEvent.BUTTON1) {
-                    if (drawingMode == DrawingMode.POLYGON && isPointInCanvas(e.getPoint())) {
+                    if (userMode == UserMode.POLYGON && isPointInCanvas(e.getPoint())) {
                         currentPolygon.addPoint(new Point2D(e.getX(), e.getY()));
                         if (!canvasModel.contains(currentPolygon))
                             canvasModel.addRasterizable(currentPolygon);
                         Logger.info("New point: " + e.getX() + ", " + e.getY() + " has been added to polygon.");
 
-                    } else if (drawingMode == DrawingMode.LINE && isPointInCanvas(e.getPoint())) {
+                    } else if (userMode == UserMode.LINE && isPointInCanvas(e.getPoint())) {
                         currentLine.setEnd(new Point2D(e.getX(), e.getY()));
                         if (!canvasModel.contains(currentLine))
                             canvasModel.addRasterizable(currentLine);
                         Logger.info("New line added: " + currentLine.toString());
 
-                    } else if (drawingMode == DrawingMode.FILLER && isPointInCanvas(e.getPoint())) {
+                    } else if (userMode == UserMode.FILLER && isPointInCanvas(e.getPoint())) {
                         var seedFill = new SeedFill(new Point2D(e.getX(), e.getY()), Color.GREEN.getRGB());
                         canvasModel.addRasterizable(seedFill);
                     }
@@ -159,7 +159,7 @@ public class Controller2D {
         canvasPanel.addMouseMotionListener(new MouseAdapter() {
             @Override
             public void mouseDragged(MouseEvent e) {
-                if ((drawingMode == DrawingMode.POLYGON || drawingMode == DrawingMode.LINE) && previewEnabled) {
+                if ((userMode == UserMode.POLYGON || userMode == UserMode.LINE) && previewEnabled) {
                     drawScene();
                 }
             }
@@ -193,14 +193,14 @@ public class Controller2D {
         if (previewEnabled) {
             var mousePosition = canvasPanel.getMousePosition();
             if (mousePosition != null) {
-                if (drawingMode == DrawingMode.POLYGON && currentPolygon != null)
+                if (userMode == UserMode.POLYGON && currentPolygon != null)
                     polygonRasterizer.rasterizePointPreview((int) mousePosition.getX(), (int) mousePosition.getY(), currentPolygon);
-                else if (drawingMode == DrawingMode.LINE && currentLine != null)
+                else if (userMode == UserMode.LINE && currentLine != null)
                     lineRasterizer.rasterize(currentLine.getStart(), (int) mousePosition.getX(), (int) mousePosition.getY(), RasterizationMode.PREVIEW);
             }
-        } else if (drawingMode == DrawingMode.SELECT) {
+        } else if (userMode == UserMode.SELECT) {
             if(currentlySelected instanceof Rasterizable){
-                ((Rasterizable) currentlySelected).rasterize(rasterizationContext, RasterizationMode.SELECT);
+                ((Rasterizable) currentlySelected).rasterize(rasterizationContext, RasterizationMode.GLOWING);
             }
         }
         canvasPanel.repaint();

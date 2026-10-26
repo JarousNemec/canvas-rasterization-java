@@ -1,5 +1,5 @@
 package rasterize;
 
 public enum RasterizationMode {
-    NORMAL, PREVIEW, ALERT, SELECT
+    NORMAL, PREVIEW, ALERT, GLOWING
 }

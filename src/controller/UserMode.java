@@ -1,6 +1,6 @@
 package controller;
 
-public enum DrawingMode {
+public enum UserMode {
     LINE,
     POLYGON,
     FILLER,

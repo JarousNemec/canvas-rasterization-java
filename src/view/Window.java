@@ -1,6 +1,6 @@
 package view;
 
-import controller.DrawingMode;
+import controller.UserMode;
 
 import javax.swing.*;
 import java.awt.*;
@@ -14,7 +14,7 @@ public class Window extends JFrame {
     private static final int PANEL_HEIGHT = 600;
     private static final String TITLE = "Canvas Rasterization";
 
-    private Consumer<DrawingMode> onModeChangedListener;
+    private Consumer<UserMode> onModeChangedListener;
 
     public Window() {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -45,19 +45,19 @@ public class Window extends JFrame {
                 if (onModeChangedListener != null) {
                     switch (selected) {
                         case "Line":
-                            onModeChangedListener.accept(DrawingMode.LINE);
+                            onModeChangedListener.accept(UserMode.LINE);
                             break;
                         case "Polygon":
-                            onModeChangedListener.accept(DrawingMode.POLYGON);
+                            onModeChangedListener.accept(UserMode.POLYGON);
                             break;
                         case "Fill":
-                            onModeChangedListener.accept(DrawingMode.FILLER);
+                            onModeChangedListener.accept(UserMode.FILLER);
                             break;
                         case "Point":
-                            onModeChangedListener.accept(DrawingMode.POINT);
+                            onModeChangedListener.accept(UserMode.POINT);
                             break;
                         case "Select":
-                            onModeChangedListener.accept(DrawingMode.SELECT);
+                            onModeChangedListener.accept(UserMode.SELECT);
                             break;
                     }
                 }
@@ -83,7 +83,7 @@ public class Window extends JFrame {
         canvasPanel.grabFocus();
     }
 
-    public void setOnModeChanged(Consumer<DrawingMode> listener) {
+    public void setOnModeChanged(Consumer<UserMode> listener) {
         this.onModeChangedListener = listener;
     }
 
