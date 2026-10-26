@@ -1,15 +1,18 @@
 package rasterize;
 
+import fill.ScanLineFiller;
 import fill.SeedFiller;
 
 public class RasterizationContext {
     private LineRasterizer lineRasterizer;
     private PolygonRasterizer polygonRasterizer;
     private SeedFiller seedFiller;
-    public RasterizationContext(LineRasterizer lineRasterizer, PolygonRasterizer polygonRasterizer, SeedFiller seedFiller) {
+    private ScanLineFiller scanLineFiller;
+    public RasterizationContext(LineRasterizer lineRasterizer, PolygonRasterizer polygonRasterizer, SeedFiller seedFiller, ScanLineFiller scanLineFiller) {
         this.lineRasterizer = lineRasterizer;
         this.polygonRasterizer = polygonRasterizer;
         this.seedFiller = seedFiller;
+        this.scanLineFiller = scanLineFiller;
     }
 
     public LineRasterizer getLineRasterizer() {

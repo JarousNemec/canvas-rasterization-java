@@ -1,5 +1,6 @@
 package controller;
 
+import fill.ScanLineFiller;
 import rasterize.*;
 import fill.SeedFiller;
 import model.*;
@@ -26,6 +27,7 @@ public class Controller2D {
 
     //Filler
     private final SeedFiller seedFiller;
+    private final ScanLineFiller scanLineFiller;
 
     //Rasterization Context containing all rasterizers
     private final RasterizationContext rasterizationContext;
@@ -44,6 +46,7 @@ public class Controller2D {
     private UserMode userMode = UserMode.LINE;
 
     private boolean isBtn1Pressed = false;
+    private Point draggingPoint = null;
 
     public Controller2D(Window window) {
         this.canvasPanel = window.getPanel();
@@ -53,8 +56,9 @@ public class Controller2D {
         polygonRasterizer = new PolygonRasterizer(lineRasterizer);
 
         seedFiller = new SeedFiller(canvasPanel.getRaster());
+        scanLineFiller = new ScanLineFiller(canvasPanel.getRaster());
 
-        rasterizationContext = new RasterizationContext(lineRasterizer, polygonRasterizer, seedFiller);
+        rasterizationContext = new RasterizationContext(lineRasterizer, polygonRasterizer, seedFiller, scanLineFiller);
         canvasModel = new CanvasModel();
 
         selectionService = new SelectionService(canvasModel);
@@ -84,6 +88,23 @@ public class Controller2D {
             @Override
             public void actionPerformed(ActionEvent e) {
                 clearScene();
+            }
+        });
+
+        //keybindings for scene filler
+        canvasPanel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke('s'), "fillAction");
+        canvasPanel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke('S'), "fillAction");
+
+        canvasPanel.getActionMap().put("fillAction", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (currentHit != null && userMode == UserMode.SELECT) {
+                    if (currentHit.target() instanceof Polygon) {
+                        scanLineFiller.setPolygon((Polygon) currentHit.target());
+                        scanLineFiller.fill();
+                        canvasPanel.repaint();
+                    }
+                }
             }
         });
 
@@ -171,6 +192,7 @@ public class Controller2D {
                         }
                     }
                 }
+                draggingPoint = e.getPoint();
             }
         });
     }
@@ -191,11 +213,15 @@ public class Controller2D {
         canvasPanel.getRaster().clear();
 
         for (var rasterizable : canvasModel.getRasterizables()) {
+            if (rasterizable instanceof Polygon) {
+                scanLineFiller.setPolygon((Polygon) rasterizable);
+                scanLineFiller.fill();
+            }
             rasterizable.rasterize(rasterizationContext);
         }
 
         if (isBtn1Pressed) {
-            var mousePosition = canvasPanel.getMousePosition();
+            var mousePosition = draggingPoint;
             if (mousePosition != null) {
                 if (userMode == UserMode.POLYGON && currentPolygon != null)
                     polygonRasterizer.rasterizePointPreview((int) mousePosition.getX(), (int) mousePosition.getY(), currentPolygon);
