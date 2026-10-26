@@ -5,8 +5,10 @@ import fill.SeedFiller;
 import model.*;
 import model.Polygon;
 import select.Hit;
+import select.HitType;
 import select.Selectable;
 import select.SelectionService;
+import transform.Transformable;
 import utils.Logger;
 import view.CanvasPanel;
 import view.Window;
@@ -37,11 +39,11 @@ public class Controller2D {
     private Polygon currentPolygon = new Polygon();
     private Line currentLine = new Line();
 
-    private Selectable currentlySelected = null;
+    private Hit currentHit = null;
 
     private UserMode userMode = UserMode.LINE;
 
-    private boolean previewEnabled = false;
+    private boolean isBtn1Pressed = false;
 
     public Controller2D(Window window) {
         this.canvasPanel = window.getPanel();
@@ -68,7 +70,7 @@ public class Controller2D {
     private void setUserMode(UserMode mode) {
         Logger.info("Drawing mode changing from: " + this.userMode + " to: " + mode);
         if (this.userMode == UserMode.SELECT && mode != UserMode.SELECT) {
-            currentlySelected = null;
+            currentHit = null;
         }
         this.userMode = mode;
     }
@@ -114,20 +116,20 @@ public class Controller2D {
                         if (mousePosition != null) {
                             currentLine.setEnd((int) mousePosition.getX(), (int) mousePosition.getY());
                         }
-                    } else if (userMode == UserMode.SELECT && isPointInCanvas(e.getPoint())) {
+                    } else if ((userMode == UserMode.SELECT || userMode == UserMode.POINT) && isPointInCanvas(e.getPoint())) {
                         var mousePosition = canvasPanel.getMousePosition();
                         if (mousePosition != null) {
                             Hit result = selectionService.findHit((int) mousePosition.getX(), (int) mousePosition.getY());
                             if (result != null) {
                                 Logger.info("Found an existing " + result.toString());
-                                currentlySelected = result.target();
+                                currentHit = result;
                             } else {
                                 Logger.info("Hit not found.");
-                                currentlySelected = null;
+                                currentHit = null;
                             }
                         }
                     }
-                    enablePreview(true);
+                    isBtn1Pressed = true;
                     drawScene();
                 }
             }
@@ -151,7 +153,7 @@ public class Controller2D {
                         var seedFill = new SeedFill(new Point2D(e.getX(), e.getY()), Color.GREEN.getRGB());
                         canvasModel.addRasterizable(seedFill);
                     }
-                    enablePreview(false);
+                    isBtn1Pressed = false;
                     drawScene();
                 }
             }
@@ -159,8 +161,15 @@ public class Controller2D {
         canvasPanel.addMouseMotionListener(new MouseAdapter() {
             @Override
             public void mouseDragged(MouseEvent e) {
-                if ((userMode == UserMode.POLYGON || userMode == UserMode.LINE) && previewEnabled) {
+                if ((userMode == UserMode.POLYGON || userMode == UserMode.LINE) && isBtn1Pressed) {
                     drawScene();
+                } else if (userMode == UserMode.POINT && isPointInCanvas(e.getPoint()) && isBtn1Pressed) {
+                    if (currentHit != null) {
+                        if (currentHit.target() instanceof Transformable && currentHit.hitType() == HitType.VERTEX) {
+                            ((Transformable) currentHit.target()).setNewPointPosition(currentHit.index(), new Point2D(e.getX(), e.getY()));
+                            drawScene();
+                        }
+                    }
                 }
             }
         });
@@ -168,11 +177,6 @@ public class Controller2D {
 
     private boolean isPointInCanvas(Point p) {
         return canvasPanel.getRaster().contains((int) p.getX(), (int) p.getY());
-    }
-
-    private void enablePreview(boolean enable) {
-        previewEnabled = enable;
-        Logger.info("Preview " + (enable ? "enabled." : "disabled."));
     }
 
     private void clearScene() {
@@ -190,7 +194,7 @@ public class Controller2D {
             rasterizable.rasterize(rasterizationContext);
         }
 
-        if (previewEnabled) {
+        if (isBtn1Pressed) {
             var mousePosition = canvasPanel.getMousePosition();
             if (mousePosition != null) {
                 if (userMode == UserMode.POLYGON && currentPolygon != null)
@@ -199,8 +203,8 @@ public class Controller2D {
                     lineRasterizer.rasterize(currentLine.getStart(), (int) mousePosition.getX(), (int) mousePosition.getY(), RasterizationMode.PREVIEW);
             }
         } else if (userMode == UserMode.SELECT) {
-            if(currentlySelected instanceof Rasterizable){
-                ((Rasterizable) currentlySelected).rasterize(rasterizationContext, RasterizationMode.GLOWING);
+            if (currentHit.target() instanceof Rasterizable) {
+                ((Rasterizable) currentHit.target()).rasterize(rasterizationContext, RasterizationMode.GLOWING);
             }
         }
         canvasPanel.repaint();

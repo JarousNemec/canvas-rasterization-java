@@ -6,9 +6,10 @@ import rasterize.RasterizationMode;
 import select.Hit;
 import select.HitType;
 import select.Selectable;
+import transform.Transformable;
 import utils.GeometryUtil;
 
-public class Line implements Rasterizable, Selectable {
+public class Line implements Rasterizable, Selectable, Transformable {
     private final Point2D[] points = new Point2D[2];
 
     public Line(Point2D p1, Point2D p2) {
@@ -87,5 +88,11 @@ public class Line implements Rasterizable, Selectable {
             return new Hit(this, HitType.EDGE, bestIndex, distanceSq);
         }
         return null;
+    }
+
+    @Override
+    public void setNewPointPosition(int index, Point2D newPosition) {
+        if(newPosition != null && index < points.length && index >= 0 )
+            points[index] = newPosition;
     }
 }

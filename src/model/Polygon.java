@@ -6,12 +6,13 @@ import rasterize.RasterizationMode;
 import select.Hit;
 import select.HitType;
 import select.Selectable;
+import transform.Transformable;
 import utils.GeometryUtil;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class Polygon implements Rasterizable, Selectable {
+public class Polygon implements Rasterizable, Selectable, Transformable {
     private final List<Point2D> points;
 
     public Polygon() {
@@ -87,5 +88,11 @@ public class Polygon implements Rasterizable, Selectable {
     @Override
     public String toString() {
         return "Polygon with " + points.size() + " points.";
+    }
+
+    @Override
+    public void setNewPointPosition(int index, Point2D newPosition) {
+        if(newPosition != null && index < points.size() && index >= 0 )
+            points.set(index, newPosition);
     }
 }
