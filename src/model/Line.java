@@ -2,6 +2,7 @@ package model;
 
 import rasterize.Rasterizable;
 import rasterize.RasterizationContext;
+import rasterize.RasterizationMode;
 import select.Hit;
 import select.HitType;
 import select.Selectable;
@@ -56,6 +57,11 @@ public class Line implements Rasterizable, Selectable {
     @Override
     public void rasterize(RasterizationContext context) {
         context.getLineRasterizer().rasterize(points[0], points[1]);
+    }
+
+    @Override
+    public void rasterize(RasterizationContext context, RasterizationMode mode) {
+        context.getLineRasterizer().rasterize(points[0], points[1], mode);
     }
 
     @Override

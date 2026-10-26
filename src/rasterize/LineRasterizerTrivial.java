@@ -16,6 +16,7 @@ public class LineRasterizerTrivial extends LineRasterizer {
         switch (mode) {
             case ALERT -> setColor(ALERT_COLOR);
             case PREVIEW -> setColor(PREVIEW_COLOR);
+            case SELECT -> setColor(SELECT_COLOR);
             default -> setColor(defaultColor);
         }
 

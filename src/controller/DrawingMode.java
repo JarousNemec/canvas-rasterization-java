@@ -4,5 +4,6 @@ public enum DrawingMode {
     LINE,
     POLYGON,
     FILLER,
-    POINT
+    POINT,
+    SELECT
 }

@@ -35,6 +35,7 @@ public class Window extends JFrame {
         modeComboBox.addItem("Line");
         modeComboBox.addItem("Polygon");
         modeComboBox.addItem("Point");
+        modeComboBox.addItem("Select");
         modeComboBox.addItem("Fill");
         modeComboBox.setMaximumSize(modeComboBox.getPreferredSize());
         modeComboBox.addItemListener(e -> {
@@ -54,6 +55,9 @@ public class Window extends JFrame {
                             break;
                         case "Point":
                             onModeChangedListener.accept(DrawingMode.POINT);
+                            break;
+                        case "Select":
+                            onModeChangedListener.accept(DrawingMode.SELECT);
                             break;
                     }
                 }

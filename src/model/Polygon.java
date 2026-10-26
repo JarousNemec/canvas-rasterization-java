@@ -2,6 +2,7 @@ package model;
 
 import rasterize.Rasterizable;
 import rasterize.RasterizationContext;
+import rasterize.RasterizationMode;
 import select.Hit;
 import select.HitType;
 import select.Selectable;
@@ -42,6 +43,11 @@ public class Polygon implements Rasterizable, Selectable {
     @Override
     public void rasterize(RasterizationContext context) {
         context.getPolygonRasterizer().rasterize(this);
+    }
+
+    @Override
+    public void rasterize(RasterizationContext context, RasterizationMode mode) {
+        context.getPolygonRasterizer().rasterize(this, mode);
     }
 
     @Override

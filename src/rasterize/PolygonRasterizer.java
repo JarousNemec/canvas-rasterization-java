@@ -11,6 +11,10 @@ public class PolygonRasterizer {
     }
 
     public void rasterize(Polygon polygon) {
+        rasterize(polygon, RasterizationMode.NORMAL);
+    }
+
+    public void rasterize(Polygon polygon, RasterizationMode mode) {
         int n = polygon.getSize();
         if (n < 2)
             return;
@@ -21,7 +25,7 @@ public class PolygonRasterizer {
             Point2D p1 = polygon.getPoint(indexP1);
             Point2D p2 = polygon.getPoint(indexP2);
 
-            lineRasterizer.rasterize(p1, p2);
+            lineRasterizer.rasterize(p1, p2, mode);
         }
     }
 

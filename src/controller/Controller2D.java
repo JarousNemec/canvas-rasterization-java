@@ -1,14 +1,11 @@
 package controller;
 
-import rasterize.RasterizationMode;
+import rasterize.*;
 import fill.SeedFiller;
 import model.*;
 import model.Polygon;
-import rasterize.LineRasterizer;
-import rasterize.LineRasterizerTrivial;
-import rasterize.PolygonRasterizer;
-import rasterize.RasterizationContext;
 import select.Hit;
+import select.Selectable;
 import select.SelectionService;
 import utils.Logger;
 import view.CanvasPanel;
@@ -40,6 +37,8 @@ public class Controller2D {
     private Polygon currentPolygon = new Polygon();
     private Line currentLine = new Line();
 
+    private Selectable currentlySelected = null;
+
     private DrawingMode drawingMode = DrawingMode.LINE;
 
     private boolean previewEnabled = false;
@@ -63,10 +62,15 @@ public class Controller2D {
     }
 
     private void initWindowEvents(Window window) {
-        window.setOnModeChanged(newMode -> {
-            this.drawingMode = newMode;
-            Logger.info("Drawing mode changed to: " + newMode);
-        });
+        window.setOnModeChanged(this::setDrawingMode);
+    }
+
+    private void setDrawingMode(DrawingMode mode) {
+        Logger.info("Drawing mode changing from: " + this.drawingMode + " to: " + mode);
+        if (this.drawingMode == DrawingMode.SELECT && mode != DrawingMode.SELECT) {
+            currentlySelected = null;
+        }
+        this.drawingMode = mode;
     }
 
     private void initKeyBindings() {
@@ -110,14 +114,16 @@ public class Controller2D {
                         if (mousePosition != null) {
                             currentLine.setEnd((int) mousePosition.getX(), (int) mousePosition.getY());
                         }
-                    } else if (drawingMode == DrawingMode.POINT && isPointInCanvas(e.getPoint())) {
+                    } else if (drawingMode == DrawingMode.SELECT && isPointInCanvas(e.getPoint())) {
                         var mousePosition = canvasPanel.getMousePosition();
                         if (mousePosition != null) {
                             Hit result = selectionService.findHit((int) mousePosition.getX(), (int) mousePosition.getY());
                             if (result != null) {
-                                Logger.info("Found an existing "+result.toString());
-                            }else{
+                                Logger.info("Found an existing " + result.toString());
+                                currentlySelected = result.target();
+                            } else {
                                 Logger.info("Hit not found.");
+                                currentlySelected = null;
                             }
                         }
                     }
@@ -191,6 +197,10 @@ public class Controller2D {
                     polygonRasterizer.rasterizePointPreview((int) mousePosition.getX(), (int) mousePosition.getY(), currentPolygon);
                 else if (drawingMode == DrawingMode.LINE && currentLine != null)
                     lineRasterizer.rasterize(currentLine.getStart(), (int) mousePosition.getX(), (int) mousePosition.getY(), RasterizationMode.PREVIEW);
+            }
+        } else if (drawingMode == DrawingMode.SELECT) {
+            if(currentlySelected instanceof Rasterizable){
+                ((Rasterizable) currentlySelected).rasterize(rasterizationContext, RasterizationMode.SELECT);
             }
         }
         canvasPanel.repaint();

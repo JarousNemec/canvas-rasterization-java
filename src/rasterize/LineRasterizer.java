@@ -12,6 +12,7 @@ public abstract class LineRasterizer {
     protected int color = defaultColor;
     protected static final int PREVIEW_COLOR = Color.ORANGE.getRGB();
     protected static final int ALERT_COLOR = Color.red.getRGB();
+    protected static final int SELECT_COLOR = Color.CYAN.getRGB();
 
     public LineRasterizer(Raster raster) {
         this.raster = raster;
