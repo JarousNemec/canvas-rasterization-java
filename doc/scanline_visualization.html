@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Scan-Line Fill Visualization</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; }
+        canvas { border: 2px solid #ccc; background: #fafafa; border-radius: 4px; }
+        .controls { display: flex; gap: 12px; justify-content: center; align-items: center; margin-bottom: 10px; font-size: 14px; flex-wrap: wrap; }
+        .controls button { padding: 4px 12px; cursor: pointer; }
+        .legend { display: flex; gap: 15px; justify-content: center; margin-bottom: 10px; font-size: 14px; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .swatch { width: 12px; height: 12px; }
+        #info { margin-top: 15px; font-family: monospace; font-size: 14px; color: #333; text-align: left; min-height: 80px; white-space: pre-line; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Scan-Line Polygon Fill (step by step)</h2>
+
+    <div class="controls">
+        <button id="btnPlay">Pause</button>
+        <button id="btnStep">Step</button>
+        <button id="btnRestart">Restart</button>
+        <label>Speed: <input type="range" id="speed" min="1" max="60" value="10"> <span id="speedValue">10</span> steps/s</label>
+        <label>Fill:
+            <select id="fillMode">
+                <option value="solid">Solid color</option>
+                <option value="checker">Pattern: checkerboard</option>
+                <option value="stripes">Pattern: diagonal stripes</option>
+            </select>
+        </label>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="swatch" style="background:#222"></div> Polygon edge</div>
+        <div class="legend-item"><div class="swatch" style="background:rgba(255,165,0,0.35)"></div> Current scan line</div>
+        <div class="legend-item"><span style="color:red; font-weight:bold;">●</span> Intersection</div>
+        <div class="legend-item"><div class="swatch" style="background:#4caf50"></div> Filled pixel</div>
+    </div>
+
+    <canvas id="canvas"></canvas>
+    <div id="info"></div>
+</div>
+
+<script>
+    // =====================================================================
+    // ===== CONFIG ========================================================
+    // =====================================================================
+
+    const GRID_WIDTH = 40;    // number of "pixels" horizontally
+    const GRID_HEIGHT = 28;   // number of "pixels" vertically
+    const CELL = 16;          // how big one "pixel" is on screen (zoom)
+
+    // Polygon vertices in pixel (grid) coordinates.
+    // It is non-convex (notch at [22,15]), so some scan lines cross 4 edges.
+    const POLYGON = [
+        {x: 4,  y: 3},
+        {x: 18, y: 8},
+        {x: 34, y: 2},
+        {x: 37, y: 24},
+        {x: 22, y: 15},
+        {x: 10, y: 25},
+        {x: 2,  y: 14}
+    ];
+
+    const SOLID_COLOR = "#4caf50";
+
+    // Patterns are small 2D arrays of colors. The pattern is repeated
+    // over the whole raster: color = pattern[y % height][x % width]
+    const PATTERNS = {
+        checker: [
+            ["#4caf50", "#c8e6c9"],
+            ["#c8e6c9", "#4caf50"]
+        ],
+        stripes: [
+            ["#1e88e5", "#1e88e5", "#bbdefb", "#bbdefb"],
+            ["#1e88e5", "#bbdefb", "#bbdefb", "#1e88e5"],
+            ["#bbdefb", "#bbdefb", "#1e88e5", "#1e88e5"],
+            ["#bbdefb", "#1e88e5", "#1e88e5", "#bbdefb"]
+        ]
+    };
+
+    // =====================================================================
+    // ===== EDGE PREPARATION ==============================================
+    // =====================================================================
+    // Turn the list of vertices into a list of edges.
+    //  - horizontal edges are skipped (a horizontal scan line would hit them
+    //    in infinitely many points, and the neighbouring edges cover them anyway)
+    //  - every edge is oriented top -> bottom, so y1 < y2 always holds.
+    //    That makes the intersection test below very simple.
+    // In Java this would be e.g. a small Edge class with x1, y1, x2, y2.
+
+    function buildEdges(polygon) {
+        const edges = [];
+        for (let i = 0; i < polygon.length; i++) {
+            const a = polygon[i];
+            const b = polygon[(i + 1) % polygon.length];   // last vertex connects to the first one
+
+            if (a.y === b.y) continue;                      // skip horizontal edge
+
+            if (a.y < b.y) {
+                edges.push({x1: a.x, y1: a.y, x2: b.x, y2: b.y});
+            } else {
+                edges.push({x1: b.x, y1: b.y, x2: a.x, y2: a.y});  // swap -> oriented top -> bottom
+            }
+        }
+        return edges;
+    }
+
+    // =====================================================================
+    // ===== CORE ALGORITHM ================================================
+    // =====================================================================
+    // For one scan line (row of pixels y) find where it crosses the edges.
+    //
+    // We test the CENTER of the pixel row: scanY = y + 0.5
+    //
+    // Edge is crossed when  y1 <= scanY < y2  (half-open interval!).
+    // The "<" at the bottom end means that a vertex shared by two edges
+    // is counted only once -> no extra intersection, no leaking fill.
+    //
+    // x of the intersection comes from the line equation (linear interpolation):
+    //     t = (scanY - y1) / (y2 - y1)        ... 0 at top of edge, 1 at bottom
+    //     x = x1 + t * (x2 - x1)
+
+    function findIntersections(edges, y) {
+        const scanY = y + 0.5;
+        const xs = [];
+        for (const e of edges) {
+            if (scanY >= e.y1 && scanY < e.y2) {
+                const t = (scanY - e.y1) / (e.y2 - e.y1);
+                xs.push(e.x1 + t * (e.x2 - e.x1));
+            }
+        }
+        return xs;
+    }
+
+    // After sorting, intersections go in pairs: [x0,x1], [x2,x3], ...
+    // Between x0 and x1 we are INSIDE the polygon, between x1 and x2 OUTSIDE, etc.
+    //
+    // A pixel x is filled when its center (x + 0.5) lies inside [xStart, xEnd).
+    // That gives the integer range: from ceil(xStart - 0.5) to ceil(xEnd - 0.5) - 1
+    function pixelRange(xStart, xEnd) {
+        return {
+            from: Math.ceil(xStart - 0.5),
+            to:   Math.ceil(xEnd - 0.5) - 1
+        };
+    }
+
+    // =====================================================================
+    // ===== PATTERN =======================================================
+    // =====================================================================
+    // The only difference between solid and pattern fill is THIS function.
+    // The algorithm itself does not change at all - it just asks
+    // "what color should pixel [x, y] have?"
+
+    function getFillColor(x, y) {
+        const mode = document.getElementById("fillMode").value;
+        if (mode === "solid") return SOLID_COLOR;
+
+        const pattern = PATTERNS[mode];
+        const row = pattern[y % pattern.length];
+        return row[x % row.length];
+    }
+
+    // =====================================================================
+    // ===== STEP GENERATOR ================================================
+    // =====================================================================
+    // To animate the algorithm we run it once in advance and record every
+    // step into a list. The animation then just walks through that list.
+    //
+    // Without animation the whole algorithm is just this (what you write in Java):
+    //
+    //     edges = buildEdges(polygon)
+    //     for y = yMin .. yMax - 1:
+    //         xs = findIntersections(edges, y)
+    //         sort(xs)
+    //         for i = 0; i < xs.length; i += 2:
+    //             range = pixelRange(xs[i], xs[i + 1])
+    //             for x = range.from .. range.to:
+    //                 raster.setPixel(x, y, getFillColor(x, y))
+    //
+    // Step types:
+    //   "scanline"      - a new row is being processed
+    //   "intersections" - intersections found (still unsorted)
+    //   "sorted"        - intersections sorted and grouped into pairs
+    //   "fill"          - one pixel gets filled
+    //   "done"          - polygon finished
+
+    function generateSteps(polygon) {
+        const edges = buildEdges(polygon);
+        const steps = [];
+
+        // Only rows between the highest and the lowest vertex can be inside
+        let yMin = Infinity, yMax = -Infinity;
+        for (const p of polygon) {
+            yMin = Math.min(yMin, p.y);
+            yMax = Math.max(yMax, p.y);
+        }
+
+        for (let y = yMin; y < yMax; y++) {
+            steps.push({type: "scanline", y});
+
+            const xs = findIntersections(edges, y);
+            steps.push({type: "intersections", y, xs: xs.slice()});
+
+            if (xs.length === 0) continue;
+
+            xs.sort((a, b) => a - b);
+            steps.push({type: "sorted", y, xs: xs.slice()});
+
+            for (let i = 0; i + 1 < xs.length; i += 2) {
+                const range = pixelRange(xs[i], xs[i + 1]);
+                for (let x = range.from; x <= range.to; x++) {
+                    steps.push({type: "fill", y, xs: xs.slice(), pairIndex: i / 2, range, x});
+                }
+            }
+        }
+
+        steps.push({type: "done"});
+        return steps;
+    }
+
+    // =====================================================================
+    // ===== DRAWING =======================================================
+    // =====================================================================
+
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = GRID_WIDTH * CELL;
+    canvas.height = GRID_HEIGHT * CELL;
+
+    function drawFilledPixels(filled) {
+        for (const p of filled) {
+            ctx.fillStyle = getFillColor(p.x, p.y);
+            ctx.fillRect(p.x * CELL, p.y * CELL, CELL, CELL);
+        }
+    }
+
+    function drawGrid() {
+        ctx.strokeStyle = "#e0e0e0";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let x = 0; x <= GRID_WIDTH; x++) {
+            ctx.moveTo(x * CELL + 0.5, 0);
+            ctx.lineTo(x * CELL + 0.5, canvas.height);
+        }
+        for (let y = 0; y <= GRID_HEIGHT; y++) {
+            ctx.moveTo(0, y * CELL + 0.5);
+            ctx.lineTo(canvas.width, y * CELL + 0.5);
+        }
+        ctx.stroke();
+    }
+
+    function drawScanline(y) {
+        // highlighted row
+        ctx.fillStyle = "rgba(255, 165, 0, 0.25)";
+        ctx.fillRect(0, y * CELL, canvas.width, CELL);
+
+        // the actual scan line goes through the pixel centers (y + 0.5)
+        ctx.strokeStyle = "orange";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(0, (y + 0.5) * CELL);
+        ctx.lineTo(canvas.width, (y + 0.5) * CELL);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    function drawPolygon(polygon) {
+        ctx.strokeStyle = "#222";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(polygon[0].x * CELL, polygon[0].y * CELL);
+        for (let i = 1; i < polygon.length; i++) {
+            ctx.lineTo(polygon[i].x * CELL, polygon[i].y * CELL);
+        }
+        ctx.closePath();
+        ctx.stroke();
+
+        ctx.fillStyle = "#222";
+        for (const p of polygon) {
+            ctx.beginPath();
+            ctx.arc(p.x * CELL, p.y * CELL, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    function drawIntersections(xs, y, showOrder) {
+        ctx.font = "bold 11px sans-serif";
+        ctx.textAlign = "center";
+        xs.forEach((x, i) => {
+            ctx.fillStyle = "red";
+            ctx.beginPath();
+            ctx.arc(x * CELL, (y + 0.5) * CELL, 5, 0, Math.PI * 2);
+            ctx.fill();
+            if (showOrder) {
+                ctx.fillText("x" + i, x * CELL, (y + 0.5) * CELL - 9);
+            }
+        });
+    }
+
+    function drawCurrentPixel(x, y) {
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x * CELL + 1, y * CELL + 1, CELL - 2, CELL - 2);
+    }
+
+    function drawScene(step, filled) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawFilledPixels(filled);
+        drawGrid();
+        if (step && step.y !== undefined) drawScanline(step.y);
+        drawPolygon(POLYGON);
+        if (step && step.xs) drawIntersections(step.xs, step.y, step.type !== "intersections");
+        if (step && step.type === "fill") drawCurrentPixel(step.x, step.y);
+    }
+
+    // Text describing what is happening in the current step
+    function describeStep(step) {
+        const fmt = xs => "[" + xs.map(x => x.toFixed(2)).join(", ") + "]";
+        const pairs = xs => {
+            const out = [];
+            for (let i = 0; i + 1 < xs.length; i += 2) {
+                out.push("[" + xs[i].toFixed(2) + " .. " + xs[i + 1].toFixed(2) + "]");
+            }
+            return out.join("  ");
+        };
+
+        switch (step.type) {
+            case "scanline":
+                return `Row y = ${step.y}\n` +
+                       `New scan line at y + 0.5 = ${step.y + 0.5}. Test every edge: y1 <= ${step.y + 0.5} < y2 ?`;
+            case "intersections":
+                return `Row y = ${step.y}\n` +
+                       `Intersections (unsorted, in edge order): ${fmt(step.xs)}\n` +
+                       (step.xs.length === 0 ? "No intersection -> nothing to fill on this row." : "");
+            case "sorted":
+                return `Row y = ${step.y}\n` +
+                       `Sorted: ${fmt(step.xs)}\n` +
+                       `Pairs (inside the polygon): ${pairs(step.xs)}`;
+            case "fill":
+                return `Row y = ${step.y}\n` +
+                       `Pair #${step.pairIndex}: [${step.xs[step.pairIndex * 2].toFixed(2)} .. ${step.xs[step.pairIndex * 2 + 1].toFixed(2)}]` +
+                       ` -> pixels x = ${step.range.from} .. ${step.range.to}\n` +
+                       `setPixel(${step.x}, ${step.y}, ${getFillColor(step.x, step.y)})`;
+            case "done":
+                return "Done! Polygon is filled. Restarting...";
+        }
+    }
+
+    // =====================================================================
+    // ===== ANIMATION LOOP & UI ===========================================
+    // =====================================================================
+
+    const info = document.getElementById("info");
+    const speedInput = document.getElementById("speed");
+    const speedValue = document.getElementById("speedValue");
+    const btnPlay = document.getElementById("btnPlay");
+
+    const DONE_PAUSE_MS = 1500;   // how long the finished polygon stays visible
+
+    let steps = generateSteps(POLYGON);
+    let stepIndex = 0;    // which step comes next
+    let filled = [];      // pixels filled so far: {x, y}
+    let currentStep = null;
+    let playing = true;
+    let timer = null;
+
+    function restart() {
+        stepIndex = 0;
+        filled = [];
+        currentStep = null;
+        drawScene(null, filled);
+        info.textContent = "Starting...";
+    }
+
+    // Execute one step of the algorithm and redraw
+    function doStep() {
+        if (stepIndex >= steps.length) restart();
+
+        currentStep = steps[stepIndex];
+        stepIndex++;
+
+        if (currentStep.type === "fill") {
+            filled.push({x: currentStep.x, y: currentStep.y});
+        }
+
+        drawScene(currentStep, filled);
+        info.textContent = describeStep(currentStep);
+    }
+
+    // Called repeatedly by setTimeout. Reading the slider every tick
+    // means a speed change takes effect immediately.
+    function tick() {
+        if (playing) doStep();
+
+        let delay = 1000 / Number(speedInput.value);
+        if (playing && currentStep && currentStep.type === "done") delay = DONE_PAUSE_MS;
+        timer = setTimeout(tick, delay);
+    }
+
+    btnPlay.addEventListener("click", () => {
+        playing = !playing;
+        btnPlay.textContent = playing ? "Pause" : "Play";
+    });
+
+    document.getElementById("btnStep").addEventListener("click", () => {
+        playing = false;
+        btnPlay.textContent = "Play";
+        doStep();
+    });
+
+    document.getElementById("btnRestart").addEventListener("click", restart);
+
+    speedInput.addEventListener("input", () => {
+        speedValue.textContent = speedInput.value;
+    });
+
+    // Switching the fill mode just repaints - the pixels stay the same,
+    // only getFillColor() returns different colors.
+    document.getElementById("fillMode").addEventListener("change", () => {
+        drawScene(currentStep, filled);
+    });
+
+    restart();
+    tick();
+</script>
+</body>
+</html>

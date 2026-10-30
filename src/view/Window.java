@@ -32,6 +32,7 @@ public class Window extends JFrame {
 
         //init combobox for mode selection
         var modeComboBox = new JComboBox<String>();
+        modeComboBox.setFocusable(false);
         modeComboBox.addItem("Line");
         modeComboBox.addItem("Polygon");
         modeComboBox.addItem("Point");

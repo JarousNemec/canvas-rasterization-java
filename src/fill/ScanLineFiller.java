@@ -9,7 +9,6 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collections;
 
-
 public class ScanLineFiller implements Filler {
 
     private Raster raster;
@@ -24,11 +23,13 @@ public class ScanLineFiller implements Filler {
     public void fill() {
         if (polygon == null)
             return;
-        if (polygon.getSize() < 2)
+        if (polygon.getSize() < 3)
             return;
 
         int yMin = polygon.getFirst().getY();
         int yMax = polygon.getFirst().getY();
+
+        //find min and max Y
         for (int i = 0; i < polygon.getSize(); i++) {
             var y = polygon.getPoint(i).getY();
             if (y > yMax)
@@ -43,10 +44,10 @@ public class ScanLineFiller implements Filler {
             Point2D p2 = polygon.getPoint((i + 1) % polygon.getSize());
 
             Edge edge = new Edge(p1.getX(), p1.getY(), p2.getX(), p2.getY());
-            if (edge.isHorizontal()) {
-                edge.orientate();
-                edges.add(edge);
-            }
+            if (edge.isHorizontal())
+                continue;
+            edge.orientate();
+            edges.add(edge);
         }
 
         ArrayList<Integer> intersectionsX = new ArrayList<>();
@@ -54,13 +55,14 @@ public class ScanLineFiller implements Filler {
             intersectionsX.clear();
             for (var edge : edges) {
                 if (edge.isIntersection(y)) {
-                    intersectionsX.add(edge.getIntersectionX(y));
+                    int intersectionX = edge.getIntersectionX(y);
+                    intersectionsX.add(intersectionX);
                 }
             }
 
             Collections.sort(intersectionsX);
 
-            for (int i = 0; i < intersectionsX.size(); i = i + 2) {
+            for (int i = 0; i < intersectionsX.size()-1; i = i + 2) {
                 for (int x = intersectionsX.get(i); x < intersectionsX.get(i + 1); x++) {
                     raster.setPixel(x, y, fillColor);
                 }

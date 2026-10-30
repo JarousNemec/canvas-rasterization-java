@@ -59,53 +59,14 @@ public class Edge {
     }
 
     public boolean isIntersection(int y) {
-        return y <= y1 && y > y2;
+        return y1 <= y && y < y2;
     }
 
     public int getIntersectionX(int y) {
-        int x = 0;
-        //Distances between points = lengths of triangle arms
-        float dx = x2 - x1;
-        float dy = y2 - y1;
+        //in what portion of the edge is the y position
+         float t = (float) (y - y1) / (y2 - y1);
 
-        //Check for dividing by zero
-        if (dx == 0 && dy == 0) {
-            return -1;
-        }
-
-        //Tangent is the opposite side over the hypotenuse. For example dy / dx depending on used quadrant.
-        if (Math.abs(dx) >= Math.abs(dy)) {
-
-            //Swap points if one is bigger than the other
-            if (x1 > x2) {
-                int temp = x1;
-                x1 = x2;
-                x2 = temp;
-                temp = y1;
-                y1 = y2;
-                y2 = temp;
-            }
-
-            //Calculate the slopes for the slope-intercept form of the equation of a line segment
-            float k = dy / dx;
-            float q = y1 - k * x1; //y = kx + q -> q = y - kx
-
-            return Math.round(k * x + q);
-        } else {
-            //Swap points if one is bigger than the other
-            if (y1 > y2) {
-                int temp = x1;
-                x1 = x2;
-                x2 = temp;
-                temp = y1;
-                y1 = y2;
-                y2 = temp;
-            }
-
-            //Calculate the slopes for the slope-intercept form of the equation of a line segment
-            float k = dx / dy;
-            float q = x1 - k * y1;
-            return Math.round(k * y + q);
-        }
+         //apply that portion to the x portion equation of the line
+         return Math.round(x1 + t * (x2 - x1));
     }
 }

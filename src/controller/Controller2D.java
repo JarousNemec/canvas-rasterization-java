@@ -2,12 +2,11 @@ package controller;
 
 import fill.ScanLineFiller;
 import rasterize.*;
-import fill.SeedFiller;
+import fill.SeedFillerStackImpl;
 import model.*;
 import model.Polygon;
 import select.Hit;
 import select.HitType;
-import select.Selectable;
 import select.SelectionService;
 import transform.Transformable;
 import utils.Logger;
@@ -26,7 +25,7 @@ public class Controller2D {
     private final PolygonRasterizer polygonRasterizer;
 
     //Filler
-    private final SeedFiller seedFiller;
+    private final SeedFillerStackImpl seedFiller;
     private final ScanLineFiller scanLineFiller;
 
     //Rasterization Context containing all rasterizers
@@ -46,7 +45,7 @@ public class Controller2D {
     private UserMode userMode = UserMode.LINE;
 
     private boolean isBtn1Pressed = false;
-    private Point draggingPoint = null;
+    private Point mousePosition = null;
 
     public Controller2D(Window window) {
         this.canvasPanel = window.getPanel();
@@ -55,7 +54,7 @@ public class Controller2D {
         lineRasterizer = new LineRasterizerTrivial(canvasPanel.getRaster());
         polygonRasterizer = new PolygonRasterizer(lineRasterizer);
 
-        seedFiller = new SeedFiller(canvasPanel.getRaster());
+        seedFiller = new SeedFillerStackImpl(canvasPanel.getRaster());
         scanLineFiller = new ScanLineFiller(canvasPanel.getRaster());
 
         rasterizationContext = new RasterizationContext(lineRasterizer, polygonRasterizer, seedFiller, scanLineFiller);
@@ -129,6 +128,7 @@ public class Controller2D {
         canvasPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
+                mousePosition = e.getPoint();
                 if (e.getButton() == MouseEvent.BUTTON1) {
                     if (userMode == UserMode.LINE && isPointInCanvas(e.getPoint())) {
                         currentLine = new Line();
@@ -151,12 +151,14 @@ public class Controller2D {
                         }
                     }
                     isBtn1Pressed = true;
+
                     drawScene();
                 }
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
+                mousePosition = e.getPoint();
                 if (e.getButton() == MouseEvent.BUTTON1) {
                     if (userMode == UserMode.POLYGON && isPointInCanvas(e.getPoint())) {
                         currentPolygon.addPoint(new Point2D(e.getX(), e.getY()));
@@ -182,6 +184,7 @@ public class Controller2D {
         canvasPanel.addMouseMotionListener(new MouseAdapter() {
             @Override
             public void mouseDragged(MouseEvent e) {
+                mousePosition = e.getPoint();
                 if ((userMode == UserMode.POLYGON || userMode == UserMode.LINE) && isBtn1Pressed) {
                     drawScene();
                 } else if (userMode == UserMode.POINT && isPointInCanvas(e.getPoint()) && isBtn1Pressed) {
@@ -192,7 +195,7 @@ public class Controller2D {
                         }
                     }
                 }
-                draggingPoint = e.getPoint();
+
             }
         });
     }
@@ -221,12 +224,11 @@ public class Controller2D {
         }
 
         if (isBtn1Pressed) {
-            var mousePosition = draggingPoint;
-            if (mousePosition != null) {
+            if (this.mousePosition != null) {
                 if (userMode == UserMode.POLYGON && currentPolygon != null)
-                    polygonRasterizer.rasterizePointPreview((int) mousePosition.getX(), (int) mousePosition.getY(), currentPolygon);
+                    polygonRasterizer.rasterizePointPreview((int) this.mousePosition.getX(), (int) this.mousePosition.getY(), currentPolygon);
                 else if (userMode == UserMode.LINE && currentLine != null)
-                    lineRasterizer.rasterize(currentLine.getStart(), (int) mousePosition.getX(), (int) mousePosition.getY(), RasterizationMode.PREVIEW);
+                    lineRasterizer.rasterize(currentLine.getStart(), (int) this.mousePosition.getX(), (int) this.mousePosition.getY(), RasterizationMode.PREVIEW);
             }
         } else if (userMode == UserMode.SELECT) {
             if (currentHit.target() instanceof Rasterizable) {
