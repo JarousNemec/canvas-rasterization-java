@@ -1,7 +1,11 @@
 package utils;
 
+import model.Point2D;
+
 public class GeometryUtil {
-    private GeometryUtil() {}
+    private GeometryUtil() {
+    }
+
     public static double distanceSqToSegment(int px, int py, int sx1, int sy1, int sx2, int sy2) {
 
         //vector of the segment
@@ -48,5 +52,28 @@ public class GeometryUtil {
         double diffX = x2 - x1;
         double diffY = y2 - y1;
         return diffX * diffX + diffY * diffY;
+    }
+
+    //tan(22.5°) - boundary between axis and diagonal direction (halfway between 0° and 45°)
+    //in the condition it stands for steps on the other axis at the current position on the base axis
+    private static final double ATTACHMENT_THRESHOLD = Math.tan(Math.toRadians(22.5));
+
+    public static Point2D attachPointToAxis(int startX, int startY, int endX, int endY) {
+        int dx = endX - startX;
+        int dy = endY - startY;
+        int adx = Math.abs(dx);
+        int ady = Math.abs(dy);
+
+        //attach to Y axis
+        if (ady <= adx * ATTACHMENT_THRESHOLD)
+            return new Point2D(endX, startY);
+
+        //attach to X axis
+        if (adx <= ady * ATTACHMENT_THRESHOLD)
+            return new Point2D(startX, endY);
+
+        //attach to diagonal
+        int longerCoordinate = Math.max(adx, ady);
+        return new Point2D(startX + Integer.signum(dx) * longerCoordinate, startY + Integer.signum(dy) * longerCoordinate);
     }
 }
