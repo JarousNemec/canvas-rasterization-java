@@ -1,5 +1,6 @@
 package controller;
 
+import controller.tool.ToolType;
 import fill.ScanLineFiller;
 import rasterize.*;
 import fill.SeedFillerStackImpl;
@@ -43,7 +44,7 @@ public class Controller2D {
 
     private Hit currentHit = null;
 
-    private UserMode userMode = UserMode.LINE;
+    private ToolType toolType = ToolType.LINE;
 
     private boolean isBtn1Pressed = false;
     private boolean isShiftPressed = false;
@@ -89,12 +90,12 @@ public class Controller2D {
 
     }
 
-    private void setUserMode(UserMode mode) {
-        Logger.info("Drawing mode changing from: " + this.userMode + " to: " + mode);
-        if (this.userMode == UserMode.SELECT && mode != UserMode.SELECT) {
+    private void setUserMode(ToolType mode) {
+        Logger.info("Drawing mode changing from: " + this.toolType + " to: " + mode);
+        if (this.toolType == ToolType.SELECT && mode != ToolType.SELECT) {
             currentHit = null;
         }
-        this.userMode = mode;
+        this.toolType = mode;
     }
 
     private void initKeyBindings() {
@@ -122,7 +123,7 @@ public class Controller2D {
     }
 
     private void handleAddAction() {
-        if (userMode == UserMode.POLYGON && currentPolygon.getSize() > 0) {
+        if (toolType == ToolType.POLYGON && currentPolygon.getSize() > 0) {
             if (!canvasModel.contains(currentPolygon))
                 canvasModel.addRasterizable(currentPolygon);
             currentPolygon = new Polygon();
@@ -136,9 +137,9 @@ public class Controller2D {
             public void mousePressed(MouseEvent e) {
                 updateMousePosition(e);
                 if (e.getButton() == MouseEvent.BUTTON1 && isPointInCanvas(e.getPoint())) {
-                    if (userMode == UserMode.LINE) {
+                    if (toolType == ToolType.LINE) {
                         handleNewLine(e);
-                    } else if ((userMode == UserMode.SELECT || userMode == UserMode.POINT)) {
+                    } else if ((toolType == ToolType.SELECT || toolType == ToolType.POINT)) {
                         handleHitTest();
                     }
                     isBtn1Pressed = true;
@@ -151,13 +152,13 @@ public class Controller2D {
                 updateMousePosition(e);
                 if (e.getButton() == MouseEvent.BUTTON1) {
                     if (isPointInCanvas(e.getPoint())) {
-                        if (userMode == UserMode.POLYGON) {
+                        if (toolType == ToolType.POLYGON) {
                             handlePolygonAdd(e);
 
-                        } else if (userMode == UserMode.LINE) {
+                        } else if (toolType == ToolType.LINE) {
                             handleLineAdd(e);
 
-                        } else if (userMode == UserMode.FILLER) {
+                        } else if (toolType == ToolType.FILLER) {
                             handleSeedFillerAdd(e);
                         }
                     }
@@ -170,9 +171,9 @@ public class Controller2D {
             @Override
             public void mouseDragged(MouseEvent e) {
                 updateMousePosition(e);
-                if ((userMode == UserMode.POLYGON || userMode == UserMode.LINE) && isBtn1Pressed) {
+                if ((toolType == ToolType.POLYGON || toolType == ToolType.LINE) && isBtn1Pressed) {
                     drawScene();
-                } else if (userMode == UserMode.POINT && isPointInCanvas(e.getPoint()) && isBtn1Pressed) {
+                } else if (toolType == ToolType.POINT && isPointInCanvas(e.getPoint()) && isBtn1Pressed) {
                     handlePointMovement(e);
                 }
             }
@@ -275,15 +276,15 @@ public class Controller2D {
                 int x = (int) this.mousePosition.getX();
                 int y = (int) this.mousePosition.getY();
 
-                if (userMode == UserMode.POLYGON && currentPolygon != null) {
+                if (toolType == ToolType.POLYGON && currentPolygon != null) {
                     polygonRasterizer.rasterizePointPreview(x, y, currentPolygon);
-                } else if (userMode == UserMode.LINE && currentLine != null) {
+                } else if (toolType == ToolType.LINE && currentLine != null) {
                     Point2D lineStart = currentLine.getStart();
                     Point2D lineEnd = getLineEnd(x, y);
                     lineRasterizer.rasterize(lineStart, lineEnd.getX(), lineEnd.getY(), RasterizationMode.PREVIEW);
                 }
             }
-        } else if (userMode == UserMode.SELECT && currentHit != null) {
+        } else if (toolType == ToolType.SELECT && currentHit != null) {
             if (currentHit.target() instanceof Rasterizable) {
                 ((Rasterizable) currentHit.target()).rasterize(rasterizationContext, RasterizationMode.GLOWING);
             }

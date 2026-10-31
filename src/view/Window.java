@@ -1,6 +1,6 @@
 package view;
 
-import controller.UserMode;
+import controller.tool.ToolType;
 import view.component.ColorIcon;
 
 import javax.swing.*;
@@ -15,7 +15,7 @@ public class Window extends JFrame {
     private static final int PANEL_HEIGHT = 600;
     private static final String TITLE = "Canvas Rasterization";
 
-    private Consumer<UserMode> onModeChangedListener;
+    private Consumer<ToolType> onModeChangedListener;
     private Consumer<Integer> onLineColorChangedListener;
     private Consumer<Integer> onFillColorChangedListener;
 
@@ -107,19 +107,19 @@ public class Window extends JFrame {
                 if (onModeChangedListener != null) {
                     switch (selected) {
                         case "Line":
-                            onModeChangedListener.accept(UserMode.LINE);
+                            onModeChangedListener.accept(ToolType.LINE);
                             break;
                         case "Polygon":
-                            onModeChangedListener.accept(UserMode.POLYGON);
+                            onModeChangedListener.accept(ToolType.POLYGON);
                             break;
                         case "Fill":
-                            onModeChangedListener.accept(UserMode.FILLER);
+                            onModeChangedListener.accept(ToolType.FILLER);
                             break;
                         case "Point":
-                            onModeChangedListener.accept(UserMode.POINT);
+                            onModeChangedListener.accept(ToolType.POINT);
                             break;
                         case "Select":
-                            onModeChangedListener.accept(UserMode.SELECT);
+                            onModeChangedListener.accept(ToolType.SELECT);
                             break;
                     }
                 }
@@ -127,7 +127,7 @@ public class Window extends JFrame {
         });
     }
 
-    public void setOnModeChanged(Consumer<UserMode> listener) {
+    public void setOnModeChanged(Consumer<ToolType> listener) {
         this.onModeChangedListener = listener;
     }
 

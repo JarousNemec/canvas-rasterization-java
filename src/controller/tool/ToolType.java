@@ -1,6 +1,6 @@
-package controller;
+package controller.tool;
 
-public enum UserMode {
+public enum ToolType {
     LINE,
     POLYGON,
     FILLER,
