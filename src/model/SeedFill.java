@@ -4,15 +4,13 @@ import rasterize.Rasterizable;
 import rasterize.RasterizationContext;
 import rasterize.RasterizationMode;
 
-import java.awt.*;
-
 public class SeedFill implements Rasterizable {
     private Point2D seed;
-    private int fillColor;
+    private int color;
 
-    public SeedFill(Point2D seed, int fillColor) {
+    public SeedFill(Point2D seed, int color) {
         this.seed = seed;
-        this.fillColor = fillColor;
+        this.color = color;
     }
 
     public Point2D getSeed() {
@@ -23,24 +21,26 @@ public class SeedFill implements Rasterizable {
         this.seed = seed;
     }
 
-    public int getFillColor() {
-        return fillColor;
-    }
-
-    public void setFillColor(int fillColor) {
-        this.fillColor = fillColor;
-    }
-
     @Override
     public void rasterize(RasterizationContext context) {
         context.getSeedFiller().setSeed(seed);
-        context.getSeedFiller().setFillColor(fillColor);
+        context.getSeedFiller().setFillColor(this.color);
         context.getSeedFiller().fill();
     }
 
     @Override
     public void rasterize(RasterizationContext context, RasterizationMode mode) {
         rasterize(context);
+    }
+
+    @Override
+    public void setColor(int color) {
+        this.color = color;
+    }
+
+    @Override
+    public int getColor() {
+        return this.color;
     }
 
 

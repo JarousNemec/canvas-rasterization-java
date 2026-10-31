@@ -38,4 +38,12 @@ public class RasterizationContext {
     public void setSeedFiller(SeedFillerStackImpl seedFiller) {
         this.seedFiller = seedFiller;
     }
+
+    public ScanLineFiller getScanLineFiller() {
+        return scanLineFiller;
+    }
+
+    public void setScanLineFiller(ScanLineFiller scanLineFiller) {
+        this.scanLineFiller = scanLineFiller;
+    }
 }

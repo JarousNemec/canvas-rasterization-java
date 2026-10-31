@@ -2,17 +2,16 @@ package rasterize;
 
 import model.Point2D;
 import raster.Raster;
+import utils.ColorUtil;
 import utils.Logger;
 
 import java.awt.*;
 
-public abstract class LineRasterizer {
+public abstract class LineRasterizer implements Rasterizer {
     protected Raster raster;
-    protected int defaultColor = Color.GRAY.getRGB();
+    protected int defaultColor = ColorUtil.DEFAULT_LINE_COLOR;
     protected int color = defaultColor;
-    protected static final int PREVIEW_COLOR = Color.ORANGE.getRGB();
-    protected static final int ALERT_COLOR = Color.red.getRGB();
-    protected static final int SELECT_COLOR = Color.CYAN.getRGB();
+
 
     public LineRasterizer(Raster raster) {
         this.raster = raster;

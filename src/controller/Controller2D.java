@@ -73,6 +73,20 @@ public class Controller2D {
 
     private void initWindowEvents(Window window) {
         window.setOnModeChanged(this::setUserMode);
+        window.setOnFillColorChanged(this::updateFillColor);
+        window.setOnLineColorChanged(this::updateLineColor);
+    }
+
+    private void updateLineColor(int color){
+
+    }
+
+    private void updateFillColor(int color){
+
+    }
+
+    private void updateColorChoosers(){
+
     }
 
     private void setUserMode(UserMode mode) {
@@ -253,10 +267,6 @@ public class Controller2D {
         canvasPanel.getRaster().clear();
 
         for (var rasterizable : canvasModel.getRasterizables()) {
-            if (rasterizable instanceof Polygon) {
-                scanLineFiller.setPolygon((Polygon) rasterizable);
-                scanLineFiller.fill();
-            }
             rasterizable.rasterize(rasterizationContext);
         }
 

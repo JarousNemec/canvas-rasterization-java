@@ -1,6 +1,7 @@
 package rasterize;
 
 import raster.Raster;
+import utils.ColorUtil;
 
 //Implementation of line rasterizer that uses the Trivial (Naive) algorithm
 public class LineRasterizerTrivial extends LineRasterizer {
@@ -14,10 +15,10 @@ public class LineRasterizerTrivial extends LineRasterizer {
 
         //Set color by mode
         switch (mode) {
-            case ALERT -> setColor(ALERT_COLOR);
-            case PREVIEW -> setColor(PREVIEW_COLOR);
-            case GLOWING -> setColor(SELECT_COLOR);
-            default -> setColor(defaultColor);
+            case ALERT -> setColor(ColorUtil.ALERT_COLOR);
+            case PREVIEW -> setColor(ColorUtil.PREVIEW_COLOR);
+            case GLOWING -> setColor(ColorUtil.SELECT_COLOR);
+            default -> setColor(this.color);
         }
 
         //Distances between points = lengths of triangle arms
@@ -27,7 +28,6 @@ public class LineRasterizerTrivial extends LineRasterizer {
         //Check for dividing by zero
         if (dx == 0 && dy == 0) {
             raster.setPixel(x1, y1, color);
-            resetColor();
             return;
         }
 
@@ -75,6 +75,5 @@ public class LineRasterizerTrivial extends LineRasterizer {
                 raster.setPixel(x, y, color);
             }
         }
-        resetColor();
     }
 }

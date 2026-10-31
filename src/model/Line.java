@@ -1,5 +1,6 @@
 package model;
 
+import rasterize.LineRasterizer;
 import rasterize.Rasterizable;
 import rasterize.RasterizationContext;
 import rasterize.RasterizationMode;
@@ -9,8 +10,11 @@ import select.Selectable;
 import transform.Transformable;
 import utils.GeometryUtil;
 
+import java.awt.*;
+
 public class Line implements Rasterizable, Selectable, Transformable {
     private final Point2D[] points = new Point2D[2];
+    private int color = Color.WHITE.getRGB();
 
     public Line(Point2D p1, Point2D p2) {
         this.points[0] = p1;
@@ -57,12 +61,24 @@ public class Line implements Rasterizable, Selectable, Transformable {
 
     @Override
     public void rasterize(RasterizationContext context) {
-        context.getLineRasterizer().rasterize(points[0], points[1]);
+        rasterize(context, RasterizationMode.NORMAL);
     }
 
     @Override
     public void rasterize(RasterizationContext context, RasterizationMode mode) {
-        context.getLineRasterizer().rasterize(points[0], points[1], mode);
+        LineRasterizer rasterizer = context.getLineRasterizer();
+        rasterizer.setColor(this.color);
+        rasterizer.rasterize(points[0], points[1], mode);
+    }
+
+    @Override
+    public void setColor(int color) {
+        this.color = color;
+    }
+
+    @Override
+    public int getColor() {
+        return this.color;
     }
 
     @Override
