@@ -20,7 +20,7 @@ public class Window extends JFrame {
     private Consumer<Integer> onFillColorChangedListener;
 
     private final JToolBar toolBar = new JToolBar();
-    private final JComboBox<String> modeComboBox = new JComboBox<String>();
+    private final JComboBox<String> modeComboBox = new JComboBox<>();
     private final ColorIcon pickLineColorIcon = new ColorIcon(15);
     private final JButton pickLineColorButton = new JButton("Line color", pickLineColorIcon);
     private final ColorIcon pickFillColorIcon = new ColorIcon(15);
@@ -67,7 +67,7 @@ public class Window extends JFrame {
     private void initColorChoosers() {
         //init line color chooser
         pickLineColorButton.setFocusable(false);
-        pickLineColorButton.addActionListener(e -> {
+        pickLineColorButton.addActionListener(_ -> {
             Color color = JColorChooser.showDialog(Window.this, "Pick line color", pickLineColorIcon.getColor(), false);
             if (color == null)
                 return;
@@ -80,7 +80,7 @@ public class Window extends JFrame {
 
         //init fill color chooser
         pickFillColorButton.setFocusable(false);
-        pickFillColorButton.addActionListener(e -> {
+        pickFillColorButton.addActionListener(_ -> {
             Color color = JColorChooser.showDialog(Window.this, "Pick fill color", pickFillColorIcon.getColor(), false);
             if (color == null)
                 return;
@@ -116,7 +116,7 @@ public class Window extends JFrame {
                             onModeChangedListener.accept(ToolType.FILLER);
                             break;
                         case "Point":
-                            onModeChangedListener.accept(ToolType.POINT);
+                            onModeChangedListener.accept(ToolType.VERTEX);
                             break;
                         case "Select":
                             onModeChangedListener.accept(ToolType.SELECT);
@@ -127,26 +127,29 @@ public class Window extends JFrame {
         });
     }
 
-    public void setOnModeChanged(Consumer<ToolType> listener) {
+    public void setOnToolChangedListener(Consumer<ToolType> listener) {
         this.onModeChangedListener = listener;
     }
 
-    public void setOnLineColorChanged(Consumer<Integer> listener) {
+    public void setOnLineColorChangedListener(Consumer<Integer> listener) {
         this.onLineColorChangedListener = listener;
     }
 
-    public void setOnFillColorChanged(Consumer<Integer> listener) {
+    public void setOnFillColorChangedListener(Consumer<Integer> listener) {
         this.onFillColorChangedListener = listener;
     }
 
     public void setLineColor(int color) {
         this.pickLineColorIcon.setColor(color);
+        this.pickFillColorButton.repaint();
     }
     public void setFillColor(int color) {
         this.pickFillColorIcon.setColor(color);
+        this.pickFillColorButton.repaint();
     }
     public void setFillColorChooserEnabled(boolean enable) {
         this.pickFillColorButton.setEnabled(enable);
+        this.repaint();
     }
 
     public CanvasPanel getPanel() {

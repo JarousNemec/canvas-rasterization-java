@@ -4,6 +4,6 @@ public enum ToolType {
     LINE,
     POLYGON,
     FILLER,
-    POINT,
+    VERTEX,
     SELECT
 }

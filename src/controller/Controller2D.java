@@ -1,22 +1,15 @@
 package controller;
 
-import controller.tool.ToolType;
+import controller.tool.*;
 import fill.ScanLineFiller;
 import rasterize.*;
 import fill.SeedFillerStackImpl;
 import model.*;
-import model.Polygon;
-import select.Hit;
-import select.HitType;
-import select.SelectionService;
-import transform.Transformable;
-import utils.GeometryUtil;
 import utils.Logger;
 import view.CanvasPanel;
 import view.Window;
 
 import javax.swing.*;
-import java.awt.*;
 import java.awt.event.*;
 
 public class Controller2D {
@@ -33,27 +26,16 @@ public class Controller2D {
     //Rasterization Context containing all rasterizers
     private final RasterizationContext rasterizationContext;
 
+    private final ToolContext toolContext;
+
     //Model that contains all rasterizables and allowing us to render them all in one cycle in order they were added
     private final CanvasModel canvasModel;
 
-    //Service that serves information if the clicked point hit some component
-    private final SelectionService selectionService;
-
-    private Polygon currentPolygon = new Polygon();
-    private Line currentLine = new Line();
-
-    private Hit currentHit = null;
-
-    private ToolType toolType = ToolType.LINE;
-
-    private boolean isBtn1Pressed = false;
-    private boolean isShiftPressed = false;
-
-    private Point mousePosition = null;
+    private ToolType activeToolType = ToolType.LINE;
+    private EditorTool activeTool = null;
 
     public Controller2D(Window window) {
         this.canvasPanel = window.getPanel();
-        initWindowEvents(window);
 
         lineRasterizer = new LineRasterizerTrivial(canvasPanel.getRaster());
         polygonRasterizer = new PolygonRasterizer(lineRasterizer);
@@ -62,40 +44,65 @@ public class Controller2D {
         scanLineFiller = new ScanLineFiller(canvasPanel.getRaster());
 
         rasterizationContext = new RasterizationContext(lineRasterizer, polygonRasterizer, seedFiller, scanLineFiller);
+
         canvasModel = new CanvasModel();
+        toolContext = new ToolContext(canvasModel, canvasPanel.getRaster().getHeight(), canvasPanel.getRaster().getWidth());
+        setActiveTool();
 
-        selectionService = new SelectionService(canvasModel);
-
+        initWindowEvents(window);
+        initToolContextEvents(window);
         initListeners();
         initKeyBindings();
 
         drawScene();
     }
 
+    private void initToolContextEvents(Window window) {
+        toolContext.setOnFillColorChangedByTool(window::setFillColor);
+        toolContext.setOnLineColorChangedByTool(window::setLineColor);
+    }
+
     private void initWindowEvents(Window window) {
-        window.setOnModeChanged(this::setUserMode);
-        window.setOnFillColorChanged(this::updateFillColor);
-        window.setOnLineColorChanged(this::updateLineColor);
+        window.setOnToolChangedListener(this::setActiveToolType);
+        window.setOnFillColorChangedListener(this::updateFillColor);
+        window.setOnLineColorChangedListener(this::updateLineColor);
     }
 
-    private void updateLineColor(int color){
-
+    private void updateLineColor(int color) {
+        toolContext.setCurrentLineColor(color);
+        drawScene();
     }
 
-    private void updateFillColor(int color){
-
+    private void updateFillColor(int color) {
+        toolContext.setCurrentFillColor(color);
+        drawScene();
     }
 
-    private void updateColorChoosers(){
-
+    private void setActiveToolType(ToolType activeToolType) {
+        Logger.info("Drawing mode changing from:" + this.activeToolType + "to: " + activeToolType);
+        this.activeToolType = activeToolType;
+        setActiveTool();
+        drawScene();
     }
 
-    private void setUserMode(ToolType mode) {
-        Logger.info("Drawing mode changing from: " + this.toolType + " to: " + mode);
-        if (this.toolType == ToolType.SELECT && mode != ToolType.SELECT) {
-            currentHit = null;
+    private void setActiveTool() {
+        switch (this.activeToolType) {
+            case LINE:
+                activeTool = new LineTool(toolContext);
+                break;
+            case POLYGON:
+                activeTool = new PolygonTool(toolContext);
+                break;
+            case FILLER:
+                activeTool = new FillerTool(toolContext);
+                break;
+            case VERTEX:
+                activeTool = new VertexTool(toolContext);
+                break;
+            case SELECT:
+                activeTool = new SelectTool(toolContext);
+                break;
         }
-        this.toolType = mode;
     }
 
     private void initKeyBindings() {
@@ -109,157 +116,48 @@ public class Controller2D {
                 clearScene();
             }
         });
-
-        //keybindings for ADD action
-        canvasPanel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke('a'), "addAction");
-        canvasPanel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke('A'), "addAction");
-
-        canvasPanel.getActionMap().put("addAction", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                handleAddAction();
-            }
-        });
-    }
-
-    private void handleAddAction() {
-        if (toolType == ToolType.POLYGON && currentPolygon.getSize() > 0) {
-            if (!canvasModel.contains(currentPolygon))
-                canvasModel.addRasterizable(currentPolygon);
-            currentPolygon = new Polygon();
-            Logger.info("Added new polygon.");
-        }
     }
 
     private void initListeners() {
         canvasPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                updateMousePosition(e);
-                if (e.getButton() == MouseEvent.BUTTON1 && isPointInCanvas(e.getPoint())) {
-                    if (toolType == ToolType.LINE) {
-                        handleNewLine(e);
-                    } else if ((toolType == ToolType.SELECT || toolType == ToolType.POINT)) {
-                        handleHitTest();
-                    }
-                    isBtn1Pressed = true;
-                    drawScene();
-                }
+                activeTool.mousePressed(e);
+                drawScene();
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                updateMousePosition(e);
-                if (e.getButton() == MouseEvent.BUTTON1) {
-                    if (isPointInCanvas(e.getPoint())) {
-                        if (toolType == ToolType.POLYGON) {
-                            handlePolygonAdd(e);
-
-                        } else if (toolType == ToolType.LINE) {
-                            handleLineAdd(e);
-
-                        } else if (toolType == ToolType.FILLER) {
-                            handleSeedFillerAdd(e);
-                        }
-                    }
-                    isBtn1Pressed = false;
-                    drawScene();
-                }
+                activeTool.mouseReleased(e);
+                drawScene();
             }
         });
         canvasPanel.addMouseMotionListener(new MouseAdapter() {
             @Override
             public void mouseDragged(MouseEvent e) {
-                updateMousePosition(e);
-                if ((toolType == ToolType.POLYGON || toolType == ToolType.LINE) && isBtn1Pressed) {
-                    drawScene();
-                } else if (toolType == ToolType.POINT && isPointInCanvas(e.getPoint()) && isBtn1Pressed) {
-                    handlePointMovement(e);
-                }
+                activeTool.mouseDragged(e);
+                drawScene();
+
             }
         });
         canvasPanel.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                updateShift(e.isShiftDown());
+                activeTool.keyPressed(e);
+                drawScene();
             }
 
             @Override
             public void keyReleased(KeyEvent e) {
-                updateShift(e.isShiftDown());
+                activeTool.keyReleased(e);
+                drawScene();
             }
         });
     }
 
-    private void handleHitTest() {
-        Hit result = selectionService.findHit((int) mousePosition.getX(), (int) mousePosition.getY());
-        if (result != null) {
-            Logger.info("Found an existing " + result.toString());
-            currentHit = result;
-        } else {
-            Logger.info("Hit not found.");
-            currentHit = null;
-        }
-    }
-
-    private void handleNewLine(MouseEvent e) {
-        currentLine = new Line();
-        currentLine.setStart(new Point2D(e.getX(), e.getY()));
-        currentLine.setEnd(new Point2D(e.getX(), e.getY()));
-    }
-
-    private void handlePointMovement(MouseEvent e) {
-        if (currentHit != null) {
-            if (currentHit.target() instanceof Transformable && currentHit.hitType() == HitType.VERTEX) {
-                ((Transformable) currentHit.target()).setNewPointPosition(currentHit.index(), new Point2D(e.getX(), e.getY()));
-                drawScene();
-            }
-        }
-    }
-
-    private void handlePolygonAdd(MouseEvent e) {
-        currentPolygon.addPoint(new Point2D(e.getX(), e.getY()));
-        if (!canvasModel.contains(currentPolygon))
-            canvasModel.addRasterizable(currentPolygon);
-        Logger.info("New point: " + e.getX() + ", " + e.getY() + " has been added to polygon.");
-    }
-
-    private void handleSeedFillerAdd(MouseEvent e) {
-        var seedFill = new SeedFill(new Point2D(e.getX(), e.getY()), Color.GREEN.getRGB());
-        canvasModel.addRasterizable(seedFill);
-    }
-
-    private void handleLineAdd(MouseEvent e) {
-        Point2D lineEnd = getLineEnd(e.getX(), e.getY());
-        currentLine.setEnd(lineEnd);
-        if (!canvasModel.contains(currentLine))
-            canvasModel.addRasterizable(currentLine);
-        Logger.info("New line added: " + currentLine.toString());
-    }
-
-    //Mouse event carries the exact shift state at the moment of the event, independent of keyboard focus
-    private void updateMousePosition(MouseEvent e) {
-        mousePosition = e.getPoint();
-        isShiftPressed = e.isShiftDown();
-    }
-
-    //Shift changed on keyboard - redraw the preview immediately, even when the mouse is not moving
-    private void updateShift(boolean shiftDown) {
-        if (isShiftPressed == shiftDown)
-            return;
-        isShiftPressed = shiftDown;
-        if (isBtn1Pressed)
-            drawScene();
-    }
-
-    private boolean isPointInCanvas(Point p) {
-        return canvasPanel.getRaster().contains((int) p.getX(), (int) p.getY());
-    }
-
     private void clearScene() {
         canvasModel.removeAllRasterizables();
-        currentLine = new Line();
-        currentPolygon = new Polygon();
+        setActiveTool();
         drawScene();
         Logger.warning("User clear the scene.");
     }
@@ -271,31 +169,9 @@ public class Controller2D {
             rasterizable.rasterize(rasterizationContext);
         }
 
-        if (isBtn1Pressed) {
-            if (this.mousePosition != null) {
-                int x = (int) this.mousePosition.getX();
-                int y = (int) this.mousePosition.getY();
+        if (activeTool != null)
+            activeTool.drawPreview(rasterizationContext);
 
-                if (toolType == ToolType.POLYGON && currentPolygon != null) {
-                    polygonRasterizer.rasterizePointPreview(x, y, currentPolygon);
-                } else if (toolType == ToolType.LINE && currentLine != null) {
-                    Point2D lineStart = currentLine.getStart();
-                    Point2D lineEnd = getLineEnd(x, y);
-                    lineRasterizer.rasterize(lineStart, lineEnd.getX(), lineEnd.getY(), RasterizationMode.PREVIEW);
-                }
-            }
-        } else if (toolType == ToolType.SELECT && currentHit != null) {
-            if (currentHit.target() instanceof Rasterizable) {
-                ((Rasterizable) currentHit.target()).rasterize(rasterizationContext, RasterizationMode.GLOWING);
-            }
-        }
         canvasPanel.repaint();
-    }
-
-    private Point2D getLineEnd(int x, int y) {
-        Point2D start = currentLine.getStart();
-        if (isShiftPressed)
-            return GeometryUtil.attachPointToAxis(start.getX(), start.getY(), x, y);
-        return new Point2D(x, y);
     }
 }
