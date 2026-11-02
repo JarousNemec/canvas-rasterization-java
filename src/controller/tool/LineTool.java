@@ -10,7 +10,7 @@ import java.awt.event.MouseEvent;
 
 public class LineTool extends EditorTool {
 
-    private Line currentLine;
+    private Line currentLine = new Line();
 
     public LineTool(ToolContext toolContext) {
         super(toolContext);
@@ -51,7 +51,7 @@ public class LineTool extends EditorTool {
     }
 
     private void handleNewLine(MouseEvent e) {
-        currentLine = new Line();
+
         currentLine.setStart(new Point2D(e.getX(), e.getY()));
         currentLine.setEnd(new Point2D(e.getX(), e.getY()));
     }
@@ -60,9 +60,19 @@ public class LineTool extends EditorTool {
         Point2D lineEnd = getLineEnd(e.getX(), e.getY());
         currentLine.setEnd(lineEnd);
         var canvasModel = toolContext.getCanvasModel();
-        if (!canvasModel.contains(currentLine))
+        if (!canvasModel.contains(currentLine)) {
+            currentLine.setColor(toolContext.getCurrentLineColor());
             canvasModel.addRasterizable(currentLine);
+            currentLine = new Line();
+        }
         Logger.info("New line added: " + currentLine.toString());
+    }
+    @Override
+    public void updateByContext() {
+        super.updateByContext();
+        if(currentLine != null){
+            currentLine.setColor(toolContext.getCurrentLineColor());
+        }
     }
 
     private Point2D getLineEnd(int x, int y) {

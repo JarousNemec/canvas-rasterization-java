@@ -1,7 +1,9 @@
 package controller.tool;
 
+import fill.Fillable;
 import model.Point2D;
 import model.SeedFill;
+import rasterize.Rasterizable;
 
 import java.awt.*;
 import java.awt.event.MouseEvent;
@@ -24,7 +26,7 @@ public class FillerTool extends EditorTool {
     }
 
     private void handleSeedFillerAdd(MouseEvent e) {
-        var seedFill = new SeedFill(new Point2D(e.getX(), e.getY()), Color.GREEN.getRGB());
+        var seedFill = new SeedFill(new Point2D(e.getX(), e.getY()), toolContext.getCurrentFillColor());
         toolContext.getCanvasModel().addRasterizable(seedFill);
     }
 }

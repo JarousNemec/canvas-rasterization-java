@@ -13,6 +13,7 @@ import javax.swing.*;
 import java.awt.event.*;
 
 public class Controller2D {
+    private final Window window;
     private final CanvasPanel canvasPanel;
 
     // Rasterizers
@@ -26,7 +27,7 @@ public class Controller2D {
     //Rasterization Context containing all rasterizers
     private final RasterizationContext rasterizationContext;
 
-    private final ToolContext toolContext;
+    private ToolContext toolContext;
 
     //Model that contains all rasterizables and allowing us to render them all in one cycle in order they were added
     private final CanvasModel canvasModel;
@@ -35,7 +36,8 @@ public class Controller2D {
     private EditorTool activeTool = null;
 
     public Controller2D(Window window) {
-        this.canvasPanel = window.getPanel();
+        this.window = window;
+        this.canvasPanel = this.window.getPanel();
 
         lineRasterizer = new LineRasterizerTrivial(canvasPanel.getRaster());
         polygonRasterizer = new PolygonRasterizer(lineRasterizer);
@@ -46,35 +48,34 @@ public class Controller2D {
         rasterizationContext = new RasterizationContext(lineRasterizer, polygonRasterizer, seedFiller, scanLineFiller);
 
         canvasModel = new CanvasModel();
-        toolContext = new ToolContext(canvasModel, canvasPanel.getRaster().getHeight(), canvasPanel.getRaster().getWidth());
         setActiveTool();
-
-        initWindowEvents(window);
-        initToolContextEvents(window);
+        initWindowEvents();
         initListeners();
         initKeyBindings();
 
         drawScene();
     }
 
-    private void initToolContextEvents(Window window) {
-        toolContext.setOnFillColorChangedByTool(window::setFillColor);
-        toolContext.setOnLineColorChangedByTool(window::setLineColor);
+    private void initToolContextEvents() {
+        toolContext.setOnFillColorChangedByTool(this.window::setFillColor);
+        toolContext.setOnLineColorChangedByTool(this.window::setLineColor);
     }
 
-    private void initWindowEvents(Window window) {
-        window.setOnToolChangedListener(this::setActiveToolType);
-        window.setOnFillColorChangedListener(this::updateFillColor);
-        window.setOnLineColorChangedListener(this::updateLineColor);
+    private void initWindowEvents() {
+        this.window.setOnToolChangedListener(this::setActiveToolType);
+        this.window.setOnFillColorChangedListener(this::updateFillColor);
+        this.window.setOnLineColorChangedListener(this::updateLineColor);
     }
 
     private void updateLineColor(int color) {
         toolContext.setCurrentLineColor(color);
+        activeTool.updateByContext();
         drawScene();
     }
 
     private void updateFillColor(int color) {
         toolContext.setCurrentFillColor(color);
+        activeTool.updateByContext();
         drawScene();
     }
 
@@ -86,23 +87,37 @@ public class Controller2D {
     }
 
     private void setActiveTool() {
+        toolContext = new ToolContext(canvasModel, canvasPanel.getRaster().getHeight(), canvasPanel.getRaster().getWidth());
+        initToolContextEvents();
         switch (this.activeToolType) {
             case LINE:
                 activeTool = new LineTool(toolContext);
+                window.setLineColorChooserEnabled(true);
+                window.setFillColorChooserEnabled(false);
                 break;
             case POLYGON:
                 activeTool = new PolygonTool(toolContext);
+                window.setLineColorChooserEnabled(true);
+                window.setFillColorChooserEnabled(true);
                 break;
             case FILLER:
                 activeTool = new FillerTool(toolContext);
+                window.setLineColorChooserEnabled(false);
+                window.setFillColorChooserEnabled(true);
                 break;
             case VERTEX:
                 activeTool = new VertexTool(toolContext);
+                window.setLineColorChooserEnabled(false);
+                window.setFillColorChooserEnabled(false);
                 break;
             case SELECT:
                 activeTool = new SelectTool(toolContext);
+                window.setLineColorChooserEnabled(true);
+                window.setFillColorChooserEnabled(true);
                 break;
         }
+        window.setLineColor(toolContext.getCurrentLineColor());
+        window.setFillColor(toolContext.getCurrentFillColor());
     }
 
     private void initKeyBindings() {
@@ -157,7 +172,6 @@ public class Controller2D {
 
     private void clearScene() {
         canvasModel.removeAllRasterizables();
-        setActiveTool();
         drawScene();
         Logger.warning("User clear the scene.");
     }

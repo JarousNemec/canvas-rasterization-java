@@ -12,4 +12,5 @@ public interface Tool {
     void keyPressed(KeyEvent e);
     void keyReleased(KeyEvent e);
     void drawPreview(RasterizationContext context);
+    void updateByContext();
 }

@@ -43,9 +43,10 @@ public abstract class EditorTool implements Tool {
     }
 
     @Override
-    public void drawPreview(RasterizationContext context) {
+    public void drawPreview(RasterizationContext context) {}
 
-    }
+    @Override
+    public void updateByContext(){}
 
     //Mouse event carries the exact shift state at the moment of the event, independent of keyboard focus
     protected void updateMousePosition(MouseEvent e) {

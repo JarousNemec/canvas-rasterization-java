@@ -3,8 +3,8 @@ package utils;
 import java.awt.*;
 
 public class ColorUtil {
-    public static final int DEFAULT_LINE_COLOR = Color.GRAY.getRGB();
-    public static final int DEFAULT_FILL_COLOR = Color.blue.getRGB();
+    public static final int DEFAULT_LINE_COLOR = Color.WHITE.getRGB();
+    public static final int DEFAULT_FILL_COLOR = Color.BLACK.getRGB();
     public static final int PREVIEW_COLOR = Color.ORANGE.getRGB();
     public static final int ALERT_COLOR = Color.red.getRGB();
     public static final int SELECT_COLOR = Color.CYAN.getRGB();

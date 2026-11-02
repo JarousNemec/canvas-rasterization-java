@@ -96,7 +96,7 @@ public class Window extends JFrame {
         modeComboBox.setFocusable(false);
         modeComboBox.addItem("Line");
         modeComboBox.addItem("Polygon");
-        modeComboBox.addItem("Point");
+        modeComboBox.addItem("Vertex");
         modeComboBox.addItem("Select");
         modeComboBox.addItem("Fill");
         modeComboBox.setMaximumSize(modeComboBox.getPreferredSize());
@@ -115,7 +115,7 @@ public class Window extends JFrame {
                         case "Fill":
                             onModeChangedListener.accept(ToolType.FILLER);
                             break;
-                        case "Point":
+                        case "Vertex":
                             onModeChangedListener.accept(ToolType.VERTEX);
                             break;
                         case "Select":
@@ -141,7 +141,7 @@ public class Window extends JFrame {
 
     public void setLineColor(int color) {
         this.pickLineColorIcon.setColor(color);
-        this.pickFillColorButton.repaint();
+        this.pickLineColorButton.repaint();
     }
     public void setFillColor(int color) {
         this.pickFillColorIcon.setColor(color);
@@ -149,6 +149,10 @@ public class Window extends JFrame {
     }
     public void setFillColorChooserEnabled(boolean enable) {
         this.pickFillColorButton.setEnabled(enable);
+        this.repaint();
+    }
+    public void setLineColorChooserEnabled(boolean enable) {
+        this.pickLineColorButton.setEnabled(enable);
         this.repaint();
     }
 

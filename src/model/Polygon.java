@@ -18,7 +18,7 @@ public class Polygon implements Rasterizable, Fillable, Selectable, Transformabl
     private final List<Point2D> points;
     private int color = ColorUtil.DEFAULT_LINE_COLOR;
     private int fillColor = ColorUtil.DEFAULT_FILL_COLOR;
-    private boolean isFilled = true;
+    private boolean isFilled = false;
 
 
     public Polygon() {

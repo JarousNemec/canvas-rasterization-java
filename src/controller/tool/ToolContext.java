@@ -2,7 +2,6 @@ package controller.tool;
 
 import model.CanvasModel;
 
-import java.awt.*;
 import java.util.function.Consumer;
 
 public class ToolContext {
@@ -46,14 +45,14 @@ public class ToolContext {
     }
 
     //notify controller that color was changed from tool
-    public void changeLineColorFromTool(int color) {
+    public void setLineColorFromTool(int color) {
         this.currentLineColor = color;
         if (onLineColorChangedByTool != null) {
             onLineColorChangedByTool.accept(color);
         }
     }
 
-    public void changeFillColorFromTool(int color) {
+    public void setFillColorFromTool(int color) {
         this.currentFillColor = color;
         if (onFillColorChangedByTool != null) {
             onFillColorChangedByTool.accept(color);

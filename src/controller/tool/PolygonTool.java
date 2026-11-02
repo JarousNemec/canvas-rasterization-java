@@ -1,8 +1,11 @@
 package controller.tool;
 
+import fill.Fillable;
 import model.Point2D;
 import model.Polygon;
+import rasterize.Rasterizable;
 import rasterize.RasterizationContext;
+import utils.ColorUtil;
 import utils.Logger;
 
 import java.awt.event.KeyEvent;
@@ -15,6 +18,7 @@ public class PolygonTool extends EditorTool {
     public PolygonTool(ToolContext toolContext) {
         super(toolContext);
     }
+
 
     @Override
     public void mouseReleased(MouseEvent e) {
@@ -44,12 +48,27 @@ public class PolygonTool extends EditorTool {
     @Override
     public void drawPreview(RasterizationContext context) {
         super.drawPreview(context);
+
         if (isBtn1Pressed)
             if (currentPolygon != null) {
                 int x = (int) this.mousePosition.getX();
                 int y = (int) this.mousePosition.getY();
                 context.getPolygonRasterizer().rasterizePointPreview(x, y, currentPolygon);
             }
+    }
+
+    @Override
+    public void updateByContext() {
+        super.updateByContext();
+        if (currentPolygon != null) {
+            currentPolygon.setColor(toolContext.getCurrentLineColor());
+            currentPolygon.setFillColor(toolContext.getCurrentFillColor());
+            if (toolContext.getCurrentFillColor() != ColorUtil.DEFAULT_FILL_COLOR) {
+                currentPolygon.enableFill();
+            }else{
+                currentPolygon.disableFill();
+            }
+        }
     }
 
     private void handlePolygonAddPoint(MouseEvent e) {
