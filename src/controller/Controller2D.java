@@ -100,7 +100,7 @@ public class Controller2D {
                 window.setLineColorChooserEnabled(true);
                 window.setFillColorChooserEnabled(true);
                 break;
-            case FILLER:
+            case FILL:
                 activeTool = new FillerTool(toolContext);
                 window.setLineColorChooserEnabled(false);
                 window.setFillColorChooserEnabled(true);
@@ -114,6 +114,11 @@ public class Controller2D {
                 activeTool = new SelectTool(toolContext);
                 window.setLineColorChooserEnabled(true);
                 window.setFillColorChooserEnabled(true);
+                break;
+            case CLIP:
+                activeTool = new ClippingTool(toolContext);
+                window.setLineColorChooserEnabled(false);
+                window.setFillColorChooserEnabled(false);
                 break;
         }
         window.setLineColor(toolContext.getCurrentLineColor());

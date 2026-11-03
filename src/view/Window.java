@@ -99,6 +99,7 @@ public class Window extends JFrame {
         modeComboBox.addItem("Vertex");
         modeComboBox.addItem("Select");
         modeComboBox.addItem("Fill");
+        modeComboBox.addItem("Clip");
         modeComboBox.setMaximumSize(modeComboBox.getPreferredSize());
         modeComboBox.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
@@ -113,7 +114,7 @@ public class Window extends JFrame {
                             onModeChangedListener.accept(ToolType.POLYGON);
                             break;
                         case "Fill":
-                            onModeChangedListener.accept(ToolType.FILLER);
+                            onModeChangedListener.accept(ToolType.FILL);
                             break;
                         case "Vertex":
                             onModeChangedListener.accept(ToolType.VERTEX);
@@ -121,6 +122,8 @@ public class Window extends JFrame {
                         case "Select":
                             onModeChangedListener.accept(ToolType.SELECT);
                             break;
+                        case "Clip":
+                            onModeChangedListener.accept(ToolType.CLIP);
                     }
                 }
             }

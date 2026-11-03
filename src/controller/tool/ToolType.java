@@ -3,7 +3,8 @@ package controller.tool;
 public enum ToolType {
     LINE,
     POLYGON,
-    FILLER,
+    FILL,
     VERTEX,
-    SELECT
+    SELECT,
+    CLIP
 }
