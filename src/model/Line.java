@@ -7,12 +7,12 @@ import rasterize.RasterizationMode;
 import select.Hit;
 import select.HitType;
 import select.Selectable;
-import transform.Transformable;
+import edit.VertexMovable;
 import utils.GeometryUtil;
 
 import java.awt.*;
 
-public class Line implements Rasterizable, Selectable, Transformable {
+public class Line implements Rasterizable, Selectable, VertexMovable {
     private final Point2D[] points = new Point2D[2];
     private int color = Color.WHITE.getRGB();
 
@@ -88,20 +88,23 @@ public class Line implements Rasterizable, Selectable, Transformable {
         int bestIndex = -1;
         for (int i = 0; i < points.length; i++) {
             var p = points[i];
-            double distanceSq = GeometryUtil.distanceSqToPoint(x, y, p.getX(), p.getY());
+            double distanceSq = GeometryUtil.squaredPointsDistance(x, y, p.getX(), p.getY());
             if (distanceSq <= bestDistanceSq) {
                 bestDistanceSq = distanceSq;
                 bestIndex = i;
             }
         }
         if (bestIndex != -1) {
-            return new Hit(this, HitType.VERTEX, bestIndex, bestDistanceSq);
+            return new Hit(this, HitType.VERTEX, bestIndex, bestDistanceSq, points[bestIndex]);
         }
 
         double distanceSq = GeometryUtil.distanceSqToSegment(x, y, points[0].getX(), points[0].getY(), points[1].getX(), points[1].getY());
         if (distanceSq <= toleranceSq) {
             bestIndex = 0;
-            return new Hit(this, HitType.EDGE, bestIndex, distanceSq);
+            var p1 = points[0];
+            var p2 = points[1];
+            Point2D closest = GeometryUtil.closestPointOnSegmentToPoint(x, y, p1.getX(), p1.getY(), p2.getX(), p2.getY());
+            return new Hit(this, HitType.EDGE, bestIndex, distanceSq, closest);
         }
         return null;
     }

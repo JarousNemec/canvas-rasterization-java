@@ -116,7 +116,7 @@ public class Controller2D {
                 window.setFillColorChooserEnabled(true);
                 break;
             case CLIP:
-                activeTool = new ClippingTool(toolContext);
+                activeTool = new ClipTool(toolContext);
                 window.setLineColorChooserEnabled(false);
                 window.setFillColorChooserEnabled(false);
                 break;
@@ -157,7 +157,6 @@ public class Controller2D {
             public void mouseDragged(MouseEvent e) {
                 activeTool.mouseDragged(e);
                 drawScene();
-
             }
         });
         canvasPanel.addKeyListener(new KeyAdapter() {

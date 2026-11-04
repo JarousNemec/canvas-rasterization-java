@@ -6,15 +6,14 @@ import rasterize.RasterizationContext;
 import rasterize.RasterizationMode;
 import select.Hit;
 import select.SelectionService;
-import utils.ColorUtil;
 
 import java.awt.event.MouseEvent;
 
-public class ClippingTool extends EditorTool{
+public class ClipTool extends EditorTool{
     private final SelectionService selectionService;
     private Hit currentHit = null;
 
-    public ClippingTool(ToolContext toolContext) {
+    public ClipTool(ToolContext toolContext) {
         super(toolContext);
         selectionService = new SelectionService(toolContext.getCanvasModel());
     }

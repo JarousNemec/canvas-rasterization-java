@@ -27,7 +27,6 @@ public class PolygonTool extends EditorTool {
             if (isPointInRaster(e.getPoint())) {
                 handlePolygonAddPoint(e);
             }
-            isBtn1Pressed = false;
         }
     }
 
@@ -48,7 +47,6 @@ public class PolygonTool extends EditorTool {
     @Override
     public void drawPreview(RasterizationContext context) {
         super.drawPreview(context);
-
         if (isBtn1Pressed)
             if (currentPolygon != null) {
                 int x = (int) this.mousePosition.getX();

@@ -21,7 +21,6 @@ public class FillerTool extends EditorTool {
             if (isPointInRaster(e.getPoint())) {
                 handleSeedFillerAdd(e);
             }
-            isBtn1Pressed = false;
         }
     }
 

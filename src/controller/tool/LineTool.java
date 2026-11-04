@@ -21,7 +21,6 @@ public class LineTool extends EditorTool {
         super.mousePressed(e);
         if (e.getButton() == MouseEvent.BUTTON1 && isPointInRaster(e.getPoint())) {
             handleNewLine(e);
-            isBtn1Pressed = true;
         }
     }
 
@@ -32,7 +31,6 @@ public class LineTool extends EditorTool {
             if (isPointInRaster(e.getPoint())) {
                 handleLineAdd(e);
             }
-            isBtn1Pressed = false;
         }
     }
 
@@ -51,7 +49,6 @@ public class LineTool extends EditorTool {
     }
 
     private void handleNewLine(MouseEvent e) {
-
         currentLine.setStart(new Point2D(e.getX(), e.getY()));
         currentLine.setEnd(new Point2D(e.getX(), e.getY()));
     }

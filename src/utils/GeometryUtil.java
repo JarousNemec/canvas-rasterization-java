@@ -6,52 +6,80 @@ public class GeometryUtil {
     private GeometryUtil() {
     }
 
-    public static double distanceSqToSegment(int px, int py, int sx1, int sy1, int sx2, int sy2) {
-
-        //vector of the segment
-        double dx = sx2 - sx1;
-        double dy = sy2 - sy1;
-
-        //squared length of the segment
-        double lengthSq = dx * dx + dy * dy;
-
-        //vector from the first segment point to the observed point
-        double toPointVectorX = px - sx1;
-        double toPointVectorY = py - sy1;
-
-        //position parameter on the segment
-        double t = 0;
-
-        //squared length of the segment must not be zero to avoid division by zero
-        if (lengthSq != 0) {
-
-            //scalar product of the segment vector and the observed point vector
-            double dot = dx * toPointVectorX + dy * toPointVectorY;
-
-            //scalar product divided by the squared length gives us the position of the closest point as a portion of the segment
-            t = dot / lengthSq;
-
-            //handle edge cases where the observed point lies before the start or past the end of the segment, so the closest point is one of the segment's endpoints
-            if (t < 0) t = 0;
-            if (t > 1) t = 1;
-        }
+    public static double distanceSqToSegment(int px, int py, int ax, int ay, int bx, int by) {
+        //parameter to line equation
+        double t = closestPointOnSegmentParameter(px, py, ax, ay, bx, by);
 
         //calculate the point on the segment that is closest to the observed point
-        double closestX = sx1 + t * dx;
-        double closestY = sy1 + t * dy;
+        //parametrized line equation
+        double closestX = lineralInterpolation(ax, bx, t);
+        double closestY = lineralInterpolation(ay, by, t);
 
-        //calculate the vector from the closest point to the observed point
-        double diffX = px - closestX;
-        double diffY = py - closestY;
-
-        //calculate the squared length of the difference vector
-        return diffX * diffX + diffY * diffY;
+        //calculate the length of the vector from the closest point to the observed point
+        return squaredPointsDistance(closestX, closestY, px, py);
     }
 
-    public static double distanceSqToPoint(int x1, int y1, int x2, int y2) {
+    public static Point2D closestPointOnSegmentToPoint(int px, int py, int ax, int ay, int bx, int by) {
+        //parameter to line equation
+        double t = closestPointOnSegmentParameter(px, py, ax, ay, bx, by);
+
+        //calculate the point on the segment that is closest to the observed point
+        //parametrized line equation
+        double closestX = lineralInterpolation(ax, bx, t);
+        double closestY = lineralInterpolation(ay, by, t);
+
+        return new Point2D((int) Math.round(closestX), (int) Math.round(closestY));
+    }
+
+    private static double lineralInterpolation(double a, double b, double t){
+        return a + t * (b-a);
+    }
+
+    private static double closestPointOnSegmentParameter(int px, int py, int ax, int ay, int bx, int by) {
+        //vector of the segment
+        double vx = bx - ax;
+        double vy = by - ay;
+
+        //vector from A to Point
+        double ux = px - ax;
+        double uy = py - ay;
+
+        //squared length of the segment
+        double vLengthSq = vectorLengthSq(vx, vy);
+
+        //squared length of the segment must not be zero to avoid division by zero
+        if (vLengthSq <= 0) return 0;
+
+        //dot product of the segment vector and the observed point vector
+        double dot = dotProduct(vx, vy, ux, uy);
+
+        //scalar product divided by the squared length gives us the position of the closest point as a portion of the segment
+        double t = dot / vLengthSq;
+
+        //handle edge cases where the observed point lies before the start or past the end of the segment, so the closest point is one of the segment's endpoints
+        if (t < 0) t = 0;
+        else if (t > 1) t = 1;
+
+        return t;
+    }
+
+    public static double squaredPointsDistance(double x1, double y1, double x2, double y2) {
+        //calculate squared distance between two point
         double diffX = x2 - x1;
         double diffY = y2 - y1;
         return diffX * diffX + diffY * diffY;
+    }
+
+    public static double dotProduct(double vx, double vy, double ux, double uy) {
+        return vx * ux + vy * uy;
+    }
+
+    public static double vectorLengthSq(double x, double y) {
+        return x * x + y * y;
+    }
+
+    public static double vectorLength(double x, double y) {
+        return Math.sqrt(x * x + y * y);
     }
 
     //tan(22.5°) - boundary between axis and diagonal direction (halfway between 0° and 45°)

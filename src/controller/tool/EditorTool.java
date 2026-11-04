@@ -1,5 +1,7 @@
 package controller.tool;
 
+import fill.Fillable;
+import rasterize.Rasterizable;
 import rasterize.RasterizationContext;
 
 import java.awt.*;
@@ -19,11 +21,17 @@ public abstract class EditorTool implements Tool {
 
     @Override
     public void mousePressed(MouseEvent e) {
+        if (e.getButton() == MouseEvent.BUTTON1) {
+            isBtn1Pressed = true;
+        }
         updateMousePosition(e);
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
+        if (e.getButton() == MouseEvent.BUTTON1) {
+            isBtn1Pressed = false;
+        }
         updateMousePosition(e);
     }
 

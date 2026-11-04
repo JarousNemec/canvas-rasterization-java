@@ -1,15 +1,19 @@
 package controller.tool;
 
+import edit.VertexListEditable;
 import model.Point2D;
+import model.Polygon;
 import select.Hit;
 import select.HitType;
 import select.SelectionService;
-import transform.Transformable;
+import edit.VertexMovable;
+
 import java.awt.event.MouseEvent;
 
 public class VertexTool extends EditorTool {
     private final SelectionService selectionService;
     private Hit currentHit;
+
     public VertexTool(ToolContext toolContext) {
         super(toolContext);
         selectionService = new SelectionService(toolContext.getCanvasModel());
@@ -20,7 +24,23 @@ public class VertexTool extends EditorTool {
         super.mousePressed(e);
         if (e.getButton() == MouseEvent.BUTTON1 && isPointInRaster(e.getPoint())) {
             currentHit = EditorToolUtil.handleHitTest(selectionService, e.getPoint());
-            isBtn1Pressed = true;
+            if (currentHit != null) {
+                if (currentHit.hitType() == HitType.EDGE && currentHit.target() instanceof VertexListEditable vertexList) {
+                    int pIndex = (currentHit.index() + 1) % vertexList.getSize();
+                    vertexList.addPoint(pIndex, currentHit.closestPoint());
+                    currentHit = new Hit(currentHit.target(), HitType.VERTEX, pIndex, currentHit.distanceSq(), currentHit.closestPoint());
+                }
+            }
+        } else if (e.getButton() == MouseEvent.BUTTON3 && isPointInRaster(e.getPoint())) {
+            currentHit = EditorToolUtil.handleHitTest(selectionService, e.getPoint());
+            if (currentHit != null) {
+                if (currentHit.hitType() == HitType.VERTEX && currentHit.target() instanceof VertexListEditable vertexList) {
+                    if (vertexList.canRemovePoint()) {
+                        vertexList.removePoint(currentHit.index());
+                        currentHit = null;
+                    }
+                }
+            }
         }
     }
 
@@ -29,13 +49,12 @@ public class VertexTool extends EditorTool {
         super.mouseDragged(e);
         if (isPointInRaster(e.getPoint()) && isBtn1Pressed)
             handlePointMovement(e);
-
     }
 
     private void handlePointMovement(MouseEvent e) {
         if (currentHit != null) {
-            if (currentHit.target() instanceof Transformable && currentHit.hitType() == HitType.VERTEX) {
-                ((Transformable) currentHit.target()).setNewPointPosition(currentHit.index(), new Point2D(e.getX(), e.getY()));
+            if (currentHit.target() instanceof VertexMovable && currentHit.hitType() == HitType.VERTEX) {
+                ((VertexMovable) currentHit.target()).setNewPointPosition(currentHit.index(), new Point2D(e.getX(), e.getY()));
             }
         }
     }

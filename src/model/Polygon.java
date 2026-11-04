@@ -1,20 +1,20 @@
 package model;
 
+import edit.VertexListEditable;
 import fill.Fillable;
 import fill.ScanLineFiller;
 import rasterize.*;
 import select.Hit;
 import select.HitType;
 import select.Selectable;
-import transform.Transformable;
+import edit.VertexMovable;
 import utils.ColorUtil;
 import utils.GeometryUtil;
 
-import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Polygon implements Rasterizable, Fillable, Selectable, Transformable {
+public class Polygon implements Rasterizable, Fillable, Selectable, VertexListEditable {
     private final List<Point2D> points;
     private int color = ColorUtil.DEFAULT_LINE_COLOR;
     private int fillColor = ColorUtil.DEFAULT_FILL_COLOR;
@@ -29,12 +29,24 @@ public class Polygon implements Rasterizable, Fillable, Selectable, Transformabl
         points.add(point);
     }
 
+    @Override
     public Point2D getPoint(int i) {
         return points.get(i);
     }
 
+    @Override
     public int getSize() {
         return points.size();
+    }
+
+    @Override
+    public boolean canRemovePoint() {
+        return points.size() > 3;
+    }
+
+    @Override
+    public void removePoint(int i) {
+        points.remove(i);
     }
 
     public Point2D getFirst() {
@@ -43,6 +55,11 @@ public class Polygon implements Rasterizable, Fillable, Selectable, Transformabl
 
     public Point2D getLast() {
         return points.getLast();
+    }
+
+    @Override
+    public void addPoint(int index, Point2D point) {
+        points.add(index, point);
     }
 
     public void clear() {
@@ -56,7 +73,7 @@ public class Polygon implements Rasterizable, Fillable, Selectable, Transformabl
 
     @Override
     public void rasterize(RasterizationContext context, RasterizationMode mode) {
-        if(this.isFilled){
+        if (this.isFilled) {
             ScanLineFiller filler = context.getScanLineFiller();
             filler.setPolygon(this);
             filler.setFillColor(this.fillColor);
@@ -74,23 +91,27 @@ public class Polygon implements Rasterizable, Fillable, Selectable, Transformabl
         double toleranceSq = tolerance * tolerance;
         double bestDistanceSq = toleranceSq;
         int bestIndex = -1;
+
+        //find the closest point of the polygon
         for (int i = 0; i < points.size(); i++) {
             var p = points.get(i);
-            double distanceSq = GeometryUtil.distanceSqToPoint(x, y, p.getX(), p.getY());
+            double distanceSq = GeometryUtil.squaredPointsDistance(x, y, p.getX(), p.getY());
             if (distanceSq <= bestDistanceSq) {
                 bestDistanceSq = distanceSq;
                 bestIndex = i;
             }
         }
+
+        //if found then return the point as the closest to given point because we have vertex hit priority
         if (bestIndex != -1) {
-            return new Hit(this, HitType.VERTEX, bestIndex, bestDistanceSq);
+            return new Hit(this, HitType.VERTEX, bestIndex, bestDistanceSq, points.get(bestIndex));
         }
+
+        //if vertex not found then we try to find the closest segment/edge
         int n = points.size();
         for (int i = 0; i < points.size(); i++) {
-            int indexP1 = i;
-            int indexP2 = (i + 1) % n;
             var p1 = points.get(i);
-            var p2 = points.get(indexP2);
+            var p2 = points.get((i + 1) % n);
             double distanceSq = GeometryUtil.distanceSqToSegment(x, y, p1.getX(), p1.getY(), p2.getX(), p2.getY());
             if (distanceSq <= bestDistanceSq) {
                 bestDistanceSq = distanceSq;
@@ -98,7 +119,11 @@ public class Polygon implements Rasterizable, Fillable, Selectable, Transformabl
             }
         }
         if (bestIndex != -1) {
-            return new Hit(this, HitType.EDGE, bestIndex, bestDistanceSq);
+            var p1 = points.get(bestIndex);
+            var p2 = points.get((bestIndex + 1) % n);
+            Point2D closest = GeometryUtil.closestPointOnSegmentToPoint(x, y, p1.getX(), p1.getY(), p2.getX(), p2.getY());
+
+            return new Hit(this, HitType.EDGE, bestIndex, bestDistanceSq, closest);
         }
         return null;
     }

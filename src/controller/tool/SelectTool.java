@@ -25,40 +25,37 @@ public class SelectTool extends EditorTool {
         super.mousePressed(e);
         if (e.getButton() == MouseEvent.BUTTON1 && isPointInRaster(e.getPoint())) {
             currentHit = EditorToolUtil.handleHitTest(selectionService, e.getPoint());
-            if(currentHit != null){
-                if(currentHit.target() instanceof Rasterizable)
-                    toolContext.setLineColorFromTool(((Rasterizable)currentHit.target()).getColor());
-                if(currentHit.target() instanceof Fillable)
-                    toolContext.setFillColorFromTool(((Fillable)currentHit.target()).getFillColor());
+            if (currentHit != null) {
+                if (currentHit.target() instanceof Rasterizable)
+                    toolContext.setLineColorFromTool(((Rasterizable) currentHit.target()).getColor());
+                if (currentHit.target() instanceof Fillable)
+                    toolContext.setFillColorFromTool(((Fillable) currentHit.target()).getFillColor());
             }
-            isBtn1Pressed = true;
         }
     }
 
     @Override
     public void drawPreview(RasterizationContext context) {
         super.drawPreview(context);
-        if (isBtn1Pressed)
-            if (currentHit != null) {
-                if (currentHit.target() instanceof Rasterizable) {
-                    ((Rasterizable) currentHit.target()).rasterize(context, RasterizationMode.GLOWING);
-                }
+        if (currentHit != null) {
+            if (currentHit.target() instanceof Rasterizable) {
+                ((Rasterizable) currentHit.target()).rasterize(context, RasterizationMode.GLOWING);
             }
+        }
     }
 
     @Override
     public void updateByContext() {
         super.updateByContext();
-        if(currentHit != null){
-            if(currentHit.target() instanceof Rasterizable)
-                ((Rasterizable)currentHit.target()).setColor(toolContext.getCurrentLineColor());
-            if(currentHit.target() instanceof Fillable)
-            {
+        if (currentHit != null) {
+            if (currentHit.target() instanceof Rasterizable)
+                ((Rasterizable) currentHit.target()).setColor(toolContext.getCurrentLineColor());
+            if (currentHit.target() instanceof Fillable) {
                 Fillable targetedFillable = ((Fillable) currentHit.target());
                 targetedFillable.setFillColor(toolContext.getCurrentFillColor());
                 if (toolContext.getCurrentFillColor() != ColorUtil.DEFAULT_FILL_COLOR) {
                     targetedFillable.enableFill();
-                }else{
+                } else {
                     targetedFillable.disableFill();
                 }
             }
