@@ -4,16 +4,21 @@ import model.Line;
 import model.Point2D;
 import rasterize.RasterizationContext;
 import rasterize.RasterizationMode;
+import select.Hit;
+import select.HitType;
+import select.SelectionService;
 import utils.GeometryUtil;
 import utils.Logger;
 import java.awt.event.MouseEvent;
 
 public class LineTool extends EditorTool {
 
+    private final SelectionService selectionService;
     private Line currentLine = new Line();
 
     public LineTool(ToolContext toolContext) {
         super(toolContext);
+        selectionService = new SelectionService(toolContext.getCanvasModel());
     }
 
     @Override
@@ -21,6 +26,8 @@ public class LineTool extends EditorTool {
         super.mousePressed(e);
         if (e.getButton() == MouseEvent.BUTTON1 && isPointInRaster(e.getPoint())) {
             handleNewLine(e);
+        } else if (e.getButton() == MouseEvent.BUTTON3 && isPointInRaster(e.getPoint())) {
+            handleLineRemove(e);
         }
     }
 
@@ -64,6 +71,15 @@ public class LineTool extends EditorTool {
         }
         Logger.info("New line added: " + currentLine.toString());
     }
+
+    private void handleLineRemove(MouseEvent e) {
+        Hit hit = EditorToolUtil.handleHitTest(selectionService, e.getPoint());
+        if (hit != null && hit.hitType() == HitType.EDGE && hit.target() instanceof Line line) {
+            toolContext.getCanvasModel().removeRasterizable(line);
+            Logger.info("Line removed: " + line);
+        }
+    }
+
     @Override
     public void updateByContext() {
         super.updateByContext();

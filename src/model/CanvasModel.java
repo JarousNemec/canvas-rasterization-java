@@ -32,4 +32,7 @@ public class CanvasModel {
     public void removeAllRasterizables() {
         rasterizables.clear();
     }
+    public void removeRasterizable(Rasterizable rasterizable) {
+        rasterizables.remove(rasterizable);
+    }
 }
