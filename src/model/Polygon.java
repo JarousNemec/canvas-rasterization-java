@@ -1,5 +1,8 @@
 package model;
 
+import clip.ClipContext;
+import clip.Clippable;
+import clip.SutherlandHogman;
 import edit.VertexListEditable;
 import fill.Fillable;
 import fill.ScanLineFiller;
@@ -14,7 +17,7 @@ import utils.GeometryUtil;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Polygon implements Rasterizable, Fillable, Selectable, VertexListEditable {
+public class Polygon implements Rasterizable, Fillable, Selectable, VertexListEditable, Clippable {
     private final List<Point2D> points;
     private int color = ColorUtil.DEFAULT_LINE_COLOR;
     private int fillColor = ColorUtil.DEFAULT_FILL_COLOR;
@@ -22,7 +25,10 @@ public class Polygon implements Rasterizable, Fillable, Selectable, VertexListEd
 
 
     public Polygon() {
-        points = new ArrayList<>();
+        this.points = new ArrayList<>();
+    }
+    public Polygon(List<Point2D> points) {
+        this.points = points;
     }
 
     public void addPoint(Point2D point) {
@@ -95,7 +101,7 @@ public class Polygon implements Rasterizable, Fillable, Selectable, VertexListEd
         //find the closest point of the polygon
         for (int i = 0; i < points.size(); i++) {
             var p = points.get(i);
-            double distanceSq = GeometryUtil.squaredPointsDistance(x, y, p.getX(), p.getY());
+            double distanceSq = GeometryUtil.distanceSquared(x, y, p.getX(), p.getY());
             if (distanceSq <= bestDistanceSq) {
                 bestDistanceSq = distanceSq;
                 bestIndex = i;
@@ -112,7 +118,7 @@ public class Polygon implements Rasterizable, Fillable, Selectable, VertexListEd
         for (int i = 0; i < points.size(); i++) {
             var p1 = points.get(i);
             var p2 = points.get((i + 1) % n);
-            double distanceSq = GeometryUtil.distanceSqToSegment(x, y, p1.getX(), p1.getY(), p2.getX(), p2.getY());
+            double distanceSq = GeometryUtil.distanceSquaredToSegment(x, y, p1.getX(), p1.getY(), p2.getX(), p2.getY());
             if (distanceSq <= bestDistanceSq) {
                 bestDistanceSq = distanceSq;
                 bestIndex = i;
@@ -121,7 +127,7 @@ public class Polygon implements Rasterizable, Fillable, Selectable, VertexListEd
         if (bestIndex != -1) {
             var p1 = points.get(bestIndex);
             var p2 = points.get((bestIndex + 1) % n);
-            Point2D closest = GeometryUtil.closestPointOnSegmentToPoint(x, y, p1.getX(), p1.getY(), p2.getX(), p2.getY());
+            Point2D closest = GeometryUtil.closestPointOnSegment(x, y, p1.getX(), p1.getY(), p2.getX(), p2.getY());
 
             return new Hit(this, HitType.EDGE, bestIndex, bestDistanceSq, closest);
         }
@@ -172,5 +178,14 @@ public class Polygon implements Rasterizable, Fillable, Selectable, VertexListEd
     @Override
     public boolean isFilled() {
         return isFilled;
+    }
+
+    @Override
+    public Rasterizable clip(ClipContext context) {
+        var clipPolygon = context.getClipPolygon();
+        if(clipPolygon == null)
+            return this;
+        var clippedPoints = SutherlandHogman.clip(this.points, clipPolygon.points);
+        return new Polygon(clippedPoints);
     }
 }

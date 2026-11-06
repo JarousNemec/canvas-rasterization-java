@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class GeometryUtilTest {
 
@@ -12,180 +13,237 @@ class GeometryUtilTest {
     //so assertEquals(expected, actual, DELTA) passes if |expected - actual| <= DELTA
     private static final double DELTA = 1e-9;
 
-    // squaredPointsDistance
+    // distanceSquared
 
     @Test
-    void squaredPointsDistance_isZero() {
-        assertEquals(0, GeometryUtil.squaredPointsDistance(5, 5, 5, 5), DELTA);
+    void distanceSquared_isZero() {
+        assertEquals(0, GeometryUtil.distanceSquared(5, 5, 5, 5), DELTA);
     }
 
     @Test
-    void squaredPointsDistance_rightTriangle3_4_5() {
+    void distanceSquared_rightTriangle3_4_5() {
         //3² + 4² = 25
-        assertEquals(25, GeometryUtil.squaredPointsDistance(0, 0, 3, 4), DELTA);
+        assertEquals(25, GeometryUtil.distanceSquared(0, 0, 3, 4), DELTA);
     }
 
     @Test
-    void squaredPointsDistance_isSymmetric() {
-        assertEquals(GeometryUtil.squaredPointsDistance(1, 2, 7, 9), GeometryUtil.squaredPointsDistance(7, 9, 1, 2), DELTA);
+    void distanceSquared_isSymmetric() {
+        assertEquals(GeometryUtil.distanceSquared(1, 2, 7, 9), GeometryUtil.distanceSquared(7, 9, 1, 2), DELTA);
     }
 
-    // distanceSqToSegment - horizontal segment (0, 0) -> (10, 0)
+    // distanceSquaredToSegment - horizontal segment (0, 0) -> (10, 0)
 
     @Test
-    void distanceSqToSegment_pointAboveSegment_usesPerpendicular() {
+    void distanceSquaredToSegment_pointAboveSegment_usesPerpendicular() {
         //closest point is (4, 0), distance is 3
-        assertEquals(9, GeometryUtil.distanceSqToSegment(4, 3, 0, 0, 10, 0), DELTA);
+        assertEquals(9, GeometryUtil.distanceSquaredToSegment(4, 3, 0, 0, 10, 0), DELTA);
     }
 
     @Test
-    void distanceSqToSegment_pointOnSegment_isZero() {
-        assertEquals(0, GeometryUtil.distanceSqToSegment(6, 0, 0, 0, 10, 0), DELTA);
+    void distanceSquaredToSegment_pointOnSegment_isZero() {
+        assertEquals(0, GeometryUtil.distanceSquaredToSegment(6, 0, 0, 0, 10, 0), DELTA);
     }
 
     @Test
-    void distanceSqToSegment_pointBeforeStart_closestIsStart() {
+    void distanceSquaredToSegment_pointBeforeStart_closestIsStart() {
         //t < 0 -> clamped to start (0, 0): 4² + 3² = 25
-        assertEquals(25, GeometryUtil.distanceSqToSegment(-4, 3, 0, 0, 10, 0), DELTA);
+        assertEquals(25, GeometryUtil.distanceSquaredToSegment(-4, 3, 0, 0, 10, 0), DELTA);
     }
 
     @Test
-    void distanceSqToSegment_pointPastEnd_closestIsEnd() {
+    void distanceSquaredToSegment_pointPastEnd_closestIsEnd() {
         //t > 1 -> clamped to end (10, 0): 4² + 3² = 25
-        assertEquals(25, GeometryUtil.distanceSqToSegment(14, 3, 0, 0, 10, 0), DELTA);
+        assertEquals(25, GeometryUtil.distanceSquaredToSegment(14, 3, 0, 0, 10, 0), DELTA);
     }
 
     @Test
-    void distanceSqToSegment_pointOnLineButOutsideSegment_isNotZero() {
+    void distanceSquaredToSegment_pointOnLineButOutsideSegment_isNotZero() {
         //lies on the infinite line, but the segment ends at (10, 0)
-        assertEquals(25, GeometryUtil.distanceSqToSegment(15, 0, 0, 0, 10, 0), DELTA);
+        assertEquals(25, GeometryUtil.distanceSquaredToSegment(15, 0, 0, 0, 10, 0), DELTA);
     }
 
-    // distanceSqToSegment - other orientations
+    // distanceSquaredToSegment - other orientations
 
     @Test
-    void distanceSqToSegment_verticalSegment() {
+    void distanceSquaredToSegment_verticalSegment() {
         //segment (0, 0) -> (0, 10), closest point is (0, 5)
-        assertEquals(9, GeometryUtil.distanceSqToSegment(3, 5, 0, 0, 0, 10), DELTA);
+        assertEquals(9, GeometryUtil.distanceSquaredToSegment(3, 5, 0, 0, 0, 10), DELTA);
     }
 
     @Test
-    void distanceSqToSegment_diagonalSegment() {
+    void distanceSquaredToSegment_diagonalSegment() {
         //segment (0, 0) -> (10, 10), closest point to (0, 10) is (5, 5): 5² + 5² = 50
-        assertEquals(50, GeometryUtil.distanceSqToSegment(0, 10, 0, 0, 10, 10), DELTA);
+        assertEquals(50, GeometryUtil.distanceSquaredToSegment(0, 10, 0, 0, 10, 10), DELTA);
     }
 
     @Test
-    void distanceSqToSegment_swappedEndpoints_sameResult() {
-        double forward = GeometryUtil.distanceSqToSegment(4, 3, 0, 0, 10, 0);
-        double backward = GeometryUtil.distanceSqToSegment(4, 3, 10, 0, 0, 0);
+    void distanceSquaredToSegment_swappedEndpoints_sameResult() {
+        double forward = GeometryUtil.distanceSquaredToSegment(4, 3, 0, 0, 10, 0);
+        double backward = GeometryUtil.distanceSquaredToSegment(4, 3, 10, 0, 0, 0);
         assertEquals(forward, backward, DELTA);
     }
 
     @Test
-    void distanceSqToSegment_zeroLengthSegment_actsAsPoint() {
+    void distanceSquaredToSegment_zeroLengthSegment_actsAsPoint() {
         //start == end, must not divide by zero
-        assertEquals(25, GeometryUtil.distanceSqToSegment(3, 4, 0, 0, 0, 0), DELTA);
+        assertEquals(25, GeometryUtil.distanceSquaredToSegment(3, 4, 0, 0, 0, 0), DELTA);
     }
 
     @Test
-    void distanceSqToSegment_closestPointOffGrid_isExact() {
+    void distanceSquaredToSegment_closestPointOffGrid_isExact() {
         //segment (0, 0) -> (2, 1), closest point to (0, 1) is (0.4, 0.2) - not a whole pixel
         //exact: 0.4² + 0.8² = 0.8; computing from the rounded point (0, 0) would give 1
-        assertEquals(0.8, GeometryUtil.distanceSqToSegment(0, 1, 0, 0, 2, 1), DELTA);
+        assertEquals(0.8, GeometryUtil.distanceSquaredToSegment(0, 1, 0, 0, 2, 1), DELTA);
     }
 
-    // closestPointOnSegmentToPoint - horizontal segment (0, 0) -> (10, 0)
+    // closestPointOnSegment - horizontal segment (0, 0) -> (10, 0)
 
     @Test
-    void closestPointOnSegmentToPoint_pointAboveSegment_isPerpendicularFoot() {
-        assertPoint(4, 0, GeometryUtil.closestPointOnSegmentToPoint(4, 3, 0, 0, 10, 0));
-    }
-
-    @Test
-    void closestPointOnSegmentToPoint_pointOnSegment_isPointItself() {
-        assertPoint(6, 0, GeometryUtil.closestPointOnSegmentToPoint(6, 0, 0, 0, 10, 0));
+    void closestPointOnSegment_pointAboveSegment_isPerpendicularFoot() {
+        assertPoint(4, 0, GeometryUtil.closestPointOnSegment(4, 3, 0, 0, 10, 0));
     }
 
     @Test
-    void closestPointOnSegmentToPoint_pointBeforeStart_isStart() {
+    void closestPointOnSegment_pointOnSegment_isPointItself() {
+        assertPoint(6, 0, GeometryUtil.closestPointOnSegment(6, 0, 0, 0, 10, 0));
+    }
+
+    @Test
+    void closestPointOnSegment_pointBeforeStart_isStart() {
         //t < 0 -> clamped to start
-        assertPoint(0, 0, GeometryUtil.closestPointOnSegmentToPoint(-4, 3, 0, 0, 10, 0));
+        assertPoint(0, 0, GeometryUtil.closestPointOnSegment(-4, 3, 0, 0, 10, 0));
     }
 
     @Test
-    void closestPointOnSegmentToPoint_pointPastEnd_isEnd() {
+    void closestPointOnSegment_pointPastEnd_isEnd() {
         //t > 1 -> clamped to end
-        assertPoint(10, 0, GeometryUtil.closestPointOnSegmentToPoint(14, 3, 0, 0, 10, 0));
+        assertPoint(10, 0, GeometryUtil.closestPointOnSegment(14, 3, 0, 0, 10, 0));
     }
 
-    // closestPointOnSegmentToPoint - other orientations
+    // closestPointOnSegment - other orientations
 
     @Test
-    void closestPointOnSegmentToPoint_verticalSegment() {
-        assertPoint(0, 5, GeometryUtil.closestPointOnSegmentToPoint(3, 5, 0, 0, 0, 10));
-    }
-
-    @Test
-    void closestPointOnSegmentToPoint_diagonalSegment() {
-        assertPoint(5, 5, GeometryUtil.closestPointOnSegmentToPoint(0, 10, 0, 0, 10, 10));
+    void closestPointOnSegment_verticalSegment() {
+        assertPoint(0, 5, GeometryUtil.closestPointOnSegment(3, 5, 0, 0, 0, 10));
     }
 
     @Test
-    void closestPointOnSegmentToPoint_swappedEndpoints_samePoint() {
-        assertPoint(4, 0, GeometryUtil.closestPointOnSegmentToPoint(4, 3, 10, 0, 0, 0));
+    void closestPointOnSegment_diagonalSegment() {
+        assertPoint(5, 5, GeometryUtil.closestPointOnSegment(0, 10, 0, 0, 10, 10));
     }
 
     @Test
-    void closestPointOnSegmentToPoint_offGrid_isRoundedToPixel() {
+    void closestPointOnSegment_swappedEndpoints_samePoint() {
+        assertPoint(4, 0, GeometryUtil.closestPointOnSegment(4, 3, 10, 0, 0, 0));
+    }
+
+    @Test
+    void closestPointOnSegment_offGrid_isRoundedToPixel() {
         //segment (0, 0) -> (10, 5), exact closest point to (3, 5) is (4.4, 2.2) -> rounded to (4, 2)
-        assertPoint(4, 2, GeometryUtil.closestPointOnSegmentToPoint(3, 5, 0, 0, 10, 5));
+        assertPoint(4, 2, GeometryUtil.closestPointOnSegment(3, 5, 0, 0, 10, 5));
     }
 
     @Test
-    void closestPointOnSegmentToPoint_zeroLengthSegment_isThatPoint() {
+    void closestPointOnSegment_zeroLengthSegment_isThatPoint() {
         //start == end, must not divide by zero and must not return null
-        assertPoint(2, 2, GeometryUtil.closestPointOnSegmentToPoint(7, 9, 2, 2, 2, 2));
+        assertPoint(2, 2, GeometryUtil.closestPointOnSegment(7, 9, 2, 2, 2, 2));
     }
 
-    // dotProduct
+    // dot
 
     @Test
-    void dotProduct_perpendicularVectors_isZero() {
-        assertEquals(0, GeometryUtil.dotProduct(3, 0, 0, 5), DELTA);
+    void dot_perpendicularVectors_isZero() {
+        assertEquals(0, GeometryUtil.dot(3, 0, 0, 5), DELTA);
     }
 
     @Test
-    void dotProduct_generalVectors() {
+    void dot_generalVectors() {
         //1*3 + 2*4 = 11
-        assertEquals(11, GeometryUtil.dotProduct(1, 2, 3, 4), DELTA);
+        assertEquals(11, GeometryUtil.dot(1, 2, 3, 4), DELTA);
     }
 
     @Test
-    void dotProduct_oppositeVectors_isNegative() {
-        assertEquals(-4, GeometryUtil.dotProduct(2, 0, -2, 0), DELTA);
+    void dot_oppositeVectors_isNegative() {
+        assertEquals(-4, GeometryUtil.dot(2, 0, -2, 0), DELTA);
     }
 
-    // vectorLengthSq, vectorLength
+    // lengthSquared, length
 
     @Test
-    void vectorLengthSq_rightTriangle3_4_5() {
-        assertEquals(25, GeometryUtil.vectorLengthSq(3, 4), DELTA);
-    }
-
-    @Test
-    void vectorLengthSq_negativeComponents_isPositive() {
-        assertEquals(25, GeometryUtil.vectorLengthSq(-3, -4), DELTA);
+    void lengthSquared_rightTriangle3_4_5() {
+        assertEquals(25, GeometryUtil.lengthSquared(3, 4), DELTA);
     }
 
     @Test
-    void vectorLength_rightTriangle3_4_5() {
-        assertEquals(5, GeometryUtil.vectorLength(3, 4), DELTA);
+    void lengthSquared_negativeComponents_isPositive() {
+        assertEquals(25, GeometryUtil.lengthSquared(-3, -4), DELTA);
     }
 
     @Test
-    void vectorLength_zeroVector_isZero() {
-        assertEquals(0, GeometryUtil.vectorLength(0, 0), DELTA);
+    void length_rightTriangle3_4_5() {
+        assertEquals(5, GeometryUtil.length(3, 4), DELTA);
+    }
+
+    @Test
+    void length_zeroVector_isZero() {
+        assertEquals(0, GeometryUtil.length(0, 0), DELTA);
+    }
+
+    // lineIntersection
+
+    @Test
+    void lineIntersection_generalLines() {
+        //AB (-2, 5) -> (6, 1) crosses the vertical line x = 0 at t = 0.25 -> (0, 4)
+        assertPoint(0, 4, GeometryUtil.lineIntersection(p(-2, 5), p(6, 1), p(0, 0), p(0, 10)));
+    }
+
+    @Test
+    void lineIntersection_horizontalAndVertical() {
+        assertPoint(3, 5, GeometryUtil.lineIntersection(p(0, 5), p(10, 5), p(3, 0), p(3, 10)));
+    }
+
+    @Test
+    void lineIntersection_twoDiagonals() {
+        assertPoint(5, 5, GeometryUtil.lineIntersection(p(0, 0), p(10, 10), p(0, 10), p(10, 0)));
+    }
+
+    @Test
+    void lineIntersection_swappedEdgeDirection_samePoint() {
+        //direction of CD must not matter
+        assertPoint(0, 4, GeometryUtil.lineIntersection(p(-2, 5), p(6, 1), p(0, 10), p(0, 0)));
+    }
+
+    @Test
+    void lineIntersection_outsideSegment_usesInfiniteLines() {
+        //AB ends at x = 2, but the infinite line still crosses x = 10 (t = 5)
+        assertPoint(10, 0, GeometryUtil.lineIntersection(p(0, 0), p(2, 0), p(10, -5), p(10, 5)));
+    }
+
+    @Test
+    void lineIntersection_offGrid_isRoundedNotTruncated() {
+        //exact intersection is (5, 1.5) -> rounded to (5, 2), truncation would give (5, 1)
+        assertPoint(5, 2, GeometryUtil.lineIntersection(p(0, 0), p(10, 3), p(5, 0), p(5, 10)));
+    }
+
+    @Test
+    void lineIntersection_parallelLines_isNull() {
+        assertNull(GeometryUtil.lineIntersection(p(0, 0), p(10, 0), p(0, 5), p(10, 5)));
+    }
+
+    @Test
+    void lineIntersection_collinearLines_isNull() {
+        //same line - infinitely many common points, no single intersection
+        assertNull(GeometryUtil.lineIntersection(p(0, 0), p(10, 0), p(20, 0), p(30, 0)));
+    }
+
+    @Test
+    void lineIntersection_zeroLengthEdge_isNull() {
+        //C == D does not define a line, must not divide by zero
+        assertNull(GeometryUtil.lineIntersection(p(0, 0), p(10, 0), p(5, 5), p(5, 5)));
+    }
+
+    private static Point2D p(int x, int y) {
+        return new Point2D(x, y);
     }
 
     private static void assertPoint(int expectedX, int expectedY, Point2D actual) {

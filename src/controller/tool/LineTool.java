@@ -75,7 +75,7 @@ public class LineTool extends EditorTool {
     private Point2D getLineEnd(int x, int y) {
         Point2D start = currentLine.getStart();
         if (isShiftPressed)
-            return GeometryUtil.attachPointToAxis(start.getX(), start.getY(), x, y);
+            return GeometryUtil.snapToAxisOrDiagonal(start.getX(), start.getY(), x, y);
         return new Point2D(x, y);
     }
 }

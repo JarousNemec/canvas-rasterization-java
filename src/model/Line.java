@@ -1,5 +1,8 @@
 package model;
 
+import clip.ClipContext;
+import clip.Clippable;
+import clip.CohenSutherland;
 import rasterize.LineRasterizer;
 import rasterize.Rasterizable;
 import rasterize.RasterizationContext;
@@ -12,7 +15,7 @@ import utils.GeometryUtil;
 
 import java.awt.*;
 
-public class Line implements Rasterizable, Selectable, VertexMovable {
+public class Line implements Rasterizable, Selectable, VertexMovable, Clippable {
     private final Point2D[] points = new Point2D[2];
     private int color = Color.WHITE.getRGB();
 
@@ -88,7 +91,7 @@ public class Line implements Rasterizable, Selectable, VertexMovable {
         int bestIndex = -1;
         for (int i = 0; i < points.length; i++) {
             var p = points[i];
-            double distanceSq = GeometryUtil.squaredPointsDistance(x, y, p.getX(), p.getY());
+            double distanceSq = GeometryUtil.distanceSquared(x, y, p.getX(), p.getY());
             if (distanceSq <= bestDistanceSq) {
                 bestDistanceSq = distanceSq;
                 bestIndex = i;
@@ -98,12 +101,12 @@ public class Line implements Rasterizable, Selectable, VertexMovable {
             return new Hit(this, HitType.VERTEX, bestIndex, bestDistanceSq, points[bestIndex]);
         }
 
-        double distanceSq = GeometryUtil.distanceSqToSegment(x, y, points[0].getX(), points[0].getY(), points[1].getX(), points[1].getY());
+        double distanceSq = GeometryUtil.distanceSquaredToSegment(x, y, points[0].getX(), points[0].getY(), points[1].getX(), points[1].getY());
         if (distanceSq <= toleranceSq) {
             bestIndex = 0;
             var p1 = points[0];
             var p2 = points[1];
-            Point2D closest = GeometryUtil.closestPointOnSegmentToPoint(x, y, p1.getX(), p1.getY(), p2.getX(), p2.getY());
+            Point2D closest = GeometryUtil.closestPointOnSegment(x, y, p1.getX(), p1.getY(), p2.getX(), p2.getY());
             return new Hit(this, HitType.EDGE, bestIndex, distanceSq, closest);
         }
         return null;
@@ -113,5 +116,14 @@ public class Line implements Rasterizable, Selectable, VertexMovable {
     public void setNewPointPosition(int index, Point2D newPosition) {
         if(newPosition != null && index < points.length && index >= 0 )
             points[index] = newPosition;
+    }
+
+    @Override
+    public Rasterizable clip(ClipContext context) {
+        var clipWindow = context.getClipWindow();
+        if (clipWindow == null)
+            return this;
+        var clippedPoints = CohenSutherland.clip(points[0], points[1], context.getClipWindow());
+        return new Line(clippedPoints[0], clippedPoints[1]);
     }
 }

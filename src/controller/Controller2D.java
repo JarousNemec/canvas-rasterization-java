@@ -1,5 +1,7 @@
 package controller;
 
+import clip.ClipContext;
+import clip.Clippable;
 import controller.tool.*;
 import fill.ScanLineFiller;
 import rasterize.*;
@@ -29,6 +31,8 @@ public class Controller2D {
 
     private ToolContext toolContext;
 
+    private final ClipContext clipContext;
+
     //Model that contains all rasterizables and allowing us to render them all in one cycle in order they were added
     private final CanvasModel canvasModel;
 
@@ -37,6 +41,7 @@ public class Controller2D {
 
     public Controller2D(Window window) {
         this.window = window;
+        this.clipContext = new ClipContext();
         this.canvasPanel = this.window.getPanel();
 
         lineRasterizer = new LineRasterizerTrivial(canvasPanel.getRaster());
@@ -184,7 +189,12 @@ public class Controller2D {
         canvasPanel.getRaster().clear();
 
         for (var rasterizable : canvasModel.getRasterizables()) {
-            rasterizable.rasterize(rasterizationContext);
+            Rasterizable toDraw = rasterizable;
+            if (toDraw instanceof Clippable clippable)
+                toDraw = clippable.clip(clipContext);
+
+            if (toDraw != null)
+                toDraw.rasterize(rasterizationContext);
         }
 
         if (activeTool != null)
