@@ -183,9 +183,15 @@ public class Polygon implements Rasterizable, Fillable, Selectable, VertexListEd
     @Override
     public Rasterizable clip(ClipContext context) {
         var clipPolygon = context.getClipPolygon();
-        if(clipPolygon == null)
+        if (!context.isPolygonClippingEnabled() || clipPolygon == null)
             return this;
         var clippedPoints = SutherlandHogman.clip(this.points, clipPolygon.points);
-        return new Polygon(clippedPoints);
+        if (clippedPoints.isEmpty())
+            return null;
+        var clippedPolygon = new Polygon(clippedPoints);
+        clippedPolygon.color = this.color;
+        clippedPolygon.fillColor = this.fillColor;
+        clippedPolygon.isFilled = this.isFilled;
+        return clippedPolygon;
     }
 }

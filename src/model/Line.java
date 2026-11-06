@@ -121,9 +121,13 @@ public class Line implements Rasterizable, Selectable, VertexMovable, Clippable 
     @Override
     public Rasterizable clip(ClipContext context) {
         var clipWindow = context.getClipWindow();
-        if (clipWindow == null)
+        if (!context.isLineClippingEnabled() || clipWindow == null)
             return this;
-        var clippedPoints = CohenSutherland.clip(points[0], points[1], context.getClipWindow());
-        return new Line(clippedPoints[0], clippedPoints[1]);
+        var clippedPoints = CohenSutherland.clip(points[0], points[1], clipWindow);
+        if (clippedPoints.length == 0)
+            return null;
+        var clippedLine = new Line(clippedPoints[0], clippedPoints[1]);
+        clippedLine.setColor(this.color);
+        return clippedLine;
     }
 }

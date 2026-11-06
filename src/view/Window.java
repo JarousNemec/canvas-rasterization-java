@@ -18,6 +18,9 @@ public class Window extends JFrame {
     private Consumer<ToolType> onModeChangedListener;
     private Consumer<Integer> onLineColorChangedListener;
     private Consumer<Integer> onFillColorChangedListener;
+    private Consumer<Boolean> onLineClippingChangedListener;
+    private Consumer<Boolean> onPolygonClippingChangedListener;
+    private Consumer<Boolean> onClipperVisualizationChangedListener;
 
     private final JToolBar toolBar = new JToolBar();
     private final JComboBox<String> modeComboBox = new JComboBox<>();
@@ -25,6 +28,9 @@ public class Window extends JFrame {
     private final JButton pickLineColorButton = new JButton("Line color", pickLineColorIcon);
     private final ColorIcon pickFillColorIcon = new ColorIcon(15);
     private final JButton pickFillColorButton = new JButton("Fill color", pickFillColorIcon);
+    private final JCheckBox lineClippingCheckBox = new JCheckBox("Clip lines");
+    private final JCheckBox polygonClippingCheckBox = new JCheckBox("Clip polygons");
+    private final JCheckBox clipperVisualizationCheckBox = new JCheckBox("Show clippers");
 
     public Window() {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -43,6 +49,8 @@ public class Window extends JFrame {
 
         initColorChoosers();
 
+        initClipCheckBoxes();
+
         //init mode selector label
         toolBar.add(new JLabel("Mode: "));
 
@@ -53,6 +61,9 @@ public class Window extends JFrame {
         toolBar.add(modeComboBox);
         toolBar.add(pickLineColorButton);
         toolBar.add(pickFillColorButton);
+        toolBar.add(lineClippingCheckBox);
+        toolBar.add(polygonClippingCheckBox);
+        toolBar.add(clipperVisualizationCheckBox);
         add(toolBar, BorderLayout.NORTH);
         add(canvasPanel);
 
@@ -90,6 +101,28 @@ public class Window extends JFrame {
             if (onFillColorChangedListener != null)
                 onFillColorChangedListener.accept(currentColor);
         });
+    }
+
+    private void initClipCheckBoxes() {
+        lineClippingCheckBox.setFocusable(false);
+        lineClippingCheckBox.addItemListener(e -> {
+            if (onLineClippingChangedListener != null)
+                onLineClippingChangedListener.accept(e.getStateChange() == ItemEvent.SELECTED);
+        });
+
+        polygonClippingCheckBox.setFocusable(false);
+        polygonClippingCheckBox.addItemListener(e -> {
+            if (onPolygonClippingChangedListener != null)
+                onPolygonClippingChangedListener.accept(e.getStateChange() == ItemEvent.SELECTED);
+        });
+
+        clipperVisualizationCheckBox.setFocusable(false);
+        clipperVisualizationCheckBox.addItemListener(e -> {
+            if (onClipperVisualizationChangedListener != null)
+                onClipperVisualizationChangedListener.accept(e.getStateChange() == ItemEvent.SELECTED);
+        });
+
+        setClipCheckBoxesEnabled(false);
     }
 
     private void initUserModeCombobox() {
@@ -140,6 +173,24 @@ public class Window extends JFrame {
 
     public void setOnFillColorChangedListener(Consumer<Integer> listener) {
         this.onFillColorChangedListener = listener;
+    }
+
+    public void setOnLineClippingChangedListener(Consumer<Boolean> listener) {
+        this.onLineClippingChangedListener = listener;
+    }
+
+    public void setOnPolygonClippingChangedListener(Consumer<Boolean> listener) {
+        this.onPolygonClippingChangedListener = listener;
+    }
+
+    public void setOnClipperVisualizationChangedListener(Consumer<Boolean> listener) {
+        this.onClipperVisualizationChangedListener = listener;
+    }
+
+    public void setClipCheckBoxesEnabled(boolean enable) {
+        this.lineClippingCheckBox.setEnabled(enable);
+        this.polygonClippingCheckBox.setEnabled(enable);
+        this.clipperVisualizationCheckBox.setEnabled(enable);
     }
 
     public void setLineColor(int color) {

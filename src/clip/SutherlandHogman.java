@@ -10,6 +10,6 @@ public class SutherlandHogman {
     }
 
     public static List<Point2D> clip(List<Point2D> subject, List<Point2D> clipper) {
-        return null;
+        return subject;
     }
 }

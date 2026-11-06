@@ -139,8 +139,8 @@ class GeometryUtilTest {
 
     @Test
     void closestPointOnSegment_offGrid_isRoundedToPixel() {
-        //segment (0, 0) -> (10, 5), exact closest point to (3, 5) is (4.4, 2.2) -> rounded to (4, 2)
-        assertPoint(4, 2, GeometryUtil.closestPointOnSegment(3, 5, 0, 0, 10, 5));
+        //segment (0, 0) -> (10, 5), exact closest point to (9, 1) is (7.6, 3.8) -> rounded to (8, 4), truncation would give (7, 3)
+        assertPoint(8, 4, GeometryUtil.closestPointOnSegment(9, 1, 0, 0, 10, 5));
     }
 
     @Test
@@ -221,8 +221,8 @@ class GeometryUtilTest {
 
     @Test
     void lineIntersection_offGrid_isRoundedNotTruncated() {
-        //exact intersection is (5, 1.5) -> rounded to (5, 2), truncation would give (5, 1)
-        assertPoint(5, 2, GeometryUtil.lineIntersection(p(0, 0), p(10, 3), p(5, 0), p(5, 10)));
+        //exact intersection is (6, 1.8) -> rounded to (6, 2), truncation would give (6, 1)
+        assertPoint(6, 2, GeometryUtil.lineIntersection(p(0, 0), p(10, 3), p(6, 0), p(6, 10)));
     }
 
     @Test

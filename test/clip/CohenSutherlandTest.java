@@ -2,10 +2,13 @@ package clip;
 
 import model.Point2D;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
 
+//clip must always finish: a broken clipping step can loop forever, which has to fail the test instead of hanging the run
+//the separate thread is needed because a busy loop does not react to the interruption of the test thread
+@Timeout(value = 1, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
 class CohenSutherlandTest {
 
     //y grows downwards, so TOP is y < 10 and BOTTOM is y > 30
@@ -14,15 +17,8 @@ class CohenSutherlandTest {
     // trivial accept - nothing is clipped
 
     @Test
-    void clip_lineInside_returnsOriginalPoints() {
-        Point2D a = p(15, 15);
-        Point2D b = p(25, 20);
-
-        Point2D[] clipped = CohenSutherland.clip(a, b, WINDOW);
-
-        assertEquals(2, clipped.length);
-        assertSame(a, clipped[0]);
-        assertSame(b, clipped[1]);
+    void clip_lineInside_staysWhole() {
+        assertSegment(15, 15, 25, 20, CohenSutherland.clip(p(15, 15), p(25, 20), WINDOW));
     }
 
     @Test
@@ -144,8 +140,8 @@ class CohenSutherlandTest {
 
     @Test
     void clip_offGridIntersection_isRoundedNotTruncated() {
-        //at x = 10 the line is at y = 12.75
-        assertSegment(10, 13, 20, 15, CohenSutherland.clip(p(0, 10), p(20, 15), WINDOW));
+        //y = 10 + 8x / 30: at x = 10 the line is at y = 12.67, which is closer to 13 than to 12
+        assertSegment(10, 13, 30, 18, CohenSutherland.clip(p(0, 10), p(30, 18), WINDOW));
     }
 
     // clip window shape

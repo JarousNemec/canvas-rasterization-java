@@ -7,6 +7,7 @@ import fill.ScanLineFiller;
 import rasterize.*;
 import fill.SeedFillerStackImpl;
 import model.*;
+import utils.ColorUtil;
 import utils.Logger;
 import view.CanvasPanel;
 import view.Window;
@@ -70,6 +71,24 @@ public class Controller2D {
         this.window.setOnToolChangedListener(this::setActiveToolType);
         this.window.setOnFillColorChangedListener(this::updateFillColor);
         this.window.setOnLineColorChangedListener(this::updateLineColor);
+        this.window.setOnLineClippingChangedListener(this::updateLineClipping);
+        this.window.setOnPolygonClippingChangedListener(this::updatePolygonClipping);
+        this.window.setOnClipperVisualizationChangedListener(this::updateClipperVisualization);
+    }
+
+    private void updateLineClipping(boolean enabled) {
+        clipContext.setLineClippingEnabled(enabled);
+        drawScene();
+    }
+
+    private void updatePolygonClipping(boolean enabled) {
+        clipContext.setPolygonClippingEnabled(enabled);
+        drawScene();
+    }
+
+    private void updateClipperVisualization(boolean enabled) {
+        clipContext.setClipperVisualizationEnabled(enabled);
+        drawScene();
     }
 
     private void updateLineColor(int color) {
@@ -126,6 +145,7 @@ public class Controller2D {
                 window.setFillColorChooserEnabled(false);
                 break;
         }
+        window.setClipCheckBoxesEnabled(this.activeToolType == ToolType.CLIP);
         window.setLineColor(toolContext.getCurrentLineColor());
         window.setFillColor(toolContext.getCurrentFillColor());
     }
@@ -200,6 +220,30 @@ public class Controller2D {
         if (activeTool != null)
             activeTool.drawPreview(rasterizationContext);
 
+        if (clipContext.isClipperVisualizationEnabled())
+            drawClippers();
+
         canvasPanel.repaint();
+    }
+
+    private void drawClippers() {
+        var clipWindow = clipContext.getClipWindow();
+        if (clipContext.isLineClippingEnabled() && clipWindow != null) {
+            int xMin = clipWindow.getXMin();
+            int xMax = clipWindow.getXMax();
+            int yMin = clipWindow.getYMin();
+            int yMax = clipWindow.getYMax();
+            lineRasterizer.setColor(ColorUtil.CLIP_WINDOW_COLOR);
+            lineRasterizer.rasterize(xMin, yMin, xMax, yMin);
+            lineRasterizer.rasterize(xMax, yMin, xMax, yMax);
+            lineRasterizer.rasterize(xMax, yMax, xMin, yMax);
+            lineRasterizer.rasterize(xMin, yMax, xMin, yMin);
+        }
+
+        var clipPolygon = clipContext.getClipPolygon();
+        if (clipContext.isPolygonClippingEnabled() && clipPolygon != null) {
+            polygonRasterizer.setColor(ColorUtil.CLIP_POLYGON_COLOR);
+            polygonRasterizer.rasterize(clipPolygon);
+        }
     }
 }
