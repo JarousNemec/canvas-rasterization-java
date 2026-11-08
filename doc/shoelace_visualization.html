@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cross Product and Shoelace</title>
+    <style>
+        /* Layout: two stacked sections, each with a canvas on the left and a live calculation panel on the right */
+        :root {
+            --bg: #eef1f4; --panel: #ffffff; --fg: #1d2430; --muted: #5d6878; --border: #d5dbe2; --grid: #e6e9ee;
+            --line: #1d2430; --v: #2563c9; --u: #15803d;
+            --pos: #c2410c;   /* cross > 0 : clockwise on screen */
+            --neg: #7c3aed;   /* cross < 0 : counter-clockwise on screen */
+            --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #14181e; --panel: #1c222a; --fg: #e4e8ee; --muted: #9aa5b4; --border: #2e3640; --grid: #222932;
+                --line: #e4e8ee; --v: #6aa1ff; --u: #4fd17f; --pos: #ff8a4c; --neg: #b28cff;
+                color-scheme: dark;
+            }
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: system-ui, "Segoe UI", sans-serif; font-size: 14px; background: var(--bg); color: var(--fg); padding: 24px 16px 48px; }
+        .wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 32px; }
+        h1 { font-size: 22px; margin: 0 0 4px; }
+        h2 { font-size: 18px; margin: 0 0 4px; }
+        .sub { color: var(--muted); margin: 0 0 14px; max-width: 75ch; line-height: 1.5; }
+        .grid { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+        .stage { flex: 1 1 620px; min-width: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
+        canvas { display: block; width: 100%; height: auto; touch-action: none; cursor: crosshair; border-radius: 4px; }
+        .panel { flex: 1 1 360px; min-width: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+        .label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 4px; }
+        .big { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+        .big .value { font-family: var(--mono); font-size: 30px; font-weight: 600; font-variant-numeric: tabular-nums; }
+        .badge { padding: 3px 10px; border-radius: 999px; font-weight: 600; font-size: 13px; border: 1px solid currentColor; }
+        .formula { font-family: var(--mono); font-size: 13px; line-height: 1.7; background: var(--bg); border-radius: 6px; padding: 8px 10px; overflow-x: auto; white-space: nowrap; }
+        table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 13px; }
+        th, td { text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        th:first-child, td:first-child { text-align: left; }
+        th { font-family: system-ui, sans-serif; font-weight: 600; color: var(--muted); font-size: 12px; }
+        tr.future td { opacity: .3; }
+        tr.current td { font-weight: 700; }
+        .table-scroll { overflow-x: auto; }
+        .note { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 0; }
+        .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+        .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        button, select { font: inherit; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--fg); cursor: pointer; }
+        button:hover, select:hover { border-color: var(--muted); }
+        button:focus-visible, select:focus-visible { outline: 2px solid var(--v); outline-offset: 2px; }
+        .step-info { font-family: var(--mono); color: var(--muted); margin-left: auto; }
+        .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <header>
+        <h1>Cross product and the shoelace formula</h1>
+        <p class="sub">Part 1 shows what a single 2D cross product means. Part 2 adds one cross product per polygon edge
+            and shows how the sum turns into the signed area that decides CW or CCW. Canvas coordinates are used, so the Y axis points down.</p>
+    </header>
+
+    <!-- PART 1 -->
+    <section>
+        <h2>1. Cross product of two vectors</h2>
+        <p class="sub">Drag the tips of <b>u</b> (first vector) and <b>v</b> (second vector). The parallelogram they span has area |cross|,
+            the triangle is half of it. The color shows the sign, the arc shows the turn from u to v.
+            In the shoelace formula u is P<sub>i</sub> and v is P<sub>i+1</sub>.</p>
+        <div class="grid">
+            <div class="stage"><canvas id="crossCanvas"></canvas></div>
+            <div class="panel">
+                <div>
+                    <div class="label">cross(u, v)</div>
+                    <div class="big"><span class="value" id="crossValue">0</span><span class="badge" id="crossBadge"></span></div>
+                </div>
+                <div>
+                    <div class="label">Component form</div>
+                    <div class="formula" id="crossFormula"></div>
+                </div>
+                <div>
+                    <div class="label">Geometric form</div>
+                    <div class="formula" id="crossGeometric"></div>
+                </div>
+                <div>
+                    <div class="label">Area</div>
+                    <div class="formula" id="crossArea"></div>
+                </div>
+                <div>
+                    <div class="label">Why a single number</div>
+                    <div class="formula" id="cross3d"></div>
+                    <p class="note" style="margin-top:6px">Both vectors lie in the XY plane, so the 3D normal points straight
+                        into or out of the screen. Its x and y components are always 0 and the z component is the 2D cross product.
+                        With X right and Y down, positive Z points into the screen.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PART 2 -->
+    <section>
+        <h2>2. Shoelace formula</h2>
+        <p class="sub">Each edge P<sub>i</sub> → P<sub>i+1</sub> makes a triangle with the origin <b>O</b>.
+            Its signed area is cross(P<sub>i</sub> − O, P<sub>i+1</sub> − O) / 2. Step through the edges and watch the colored area:
+            the parts outside the polygon are added once with + and once with −, so they disappear and only the polygon stays.
+            Drag the vertices and the origin.</p>
+        <div class="grid">
+            <div class="stage">
+                <canvas id="shoeCanvas"></canvas>
+                <div class="controls" style="padding:8px 4px 2px">
+                    <button id="prevBtn" type="button">◀ Previous</button>
+                    <button id="nextBtn" type="button">Next ▶</button>
+                    <button id="allBtn" type="button">Show all</button>
+                    <button id="clearBtn" type="button">Clear</button>
+                    <button id="reverseBtn" type="button">Reverse order</button>
+                    <button id="originBtn" type="button">O to (0, 0)</button>
+                    <select id="presetSelect" aria-label="Polygon preset">
+                        <option value="square">Square (CCW)</option>
+                        <option value="lshape">L shape (CW, concave)</option>
+                        <option value="triangle">Triangle</option>
+                    </select>
+                    <span class="step-info" id="stepInfo"></span>
+                </div>
+            </div>
+            <div class="panel">
+                <div>
+                    <div class="label" id="sumLabel">area2 = Σ cross</div>
+                    <div class="big"><span class="value" id="sumValue">0</span><span class="badge" id="sumBadge"></span></div>
+                    <p class="note" id="sumNote"></p>
+                </div>
+                <div>
+                    <div class="label">Last added edge</div>
+                    <div class="formula" id="termFormula"></div>
+                </div>
+                <div>
+                    <div class="label">All edges (coordinates relative to O)</div>
+                    <div class="table-scroll">
+                        <table>
+                            <thead><tr><th>edge</th><th>P<sub>i</sub></th><th>P<sub>i+1</sub></th><th>cross</th><th>running Σ</th></tr></thead>
+                            <tbody id="termTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="legend">
+                    <span><span class="sw" style="background:var(--pos)"></span>cross &gt; 0 (CW turn on screen)</span>
+                    <span><span class="sw" style="background:var(--neg)"></span>cross &lt; 0 (CCW turn on screen)</span>
+                </div>
+                <p class="note">The colored area is the running sum drawn point by point: wherever a + triangle and a − triangle
+                    overlap they cancel and the color disappears. After the last edge only the polygon is left, in one color.
+                    Move O anywhere: the terms change, the total does not.</p>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script>
+    // shared helpers
+    const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    const sub = (p, q) => ({x: p.x - q.x, y: p.y - q.y});
+    const add = (p, q) => ({x: p.x + q.x, y: p.y + q.y});
+    const crossV = (a, b) => a.x * b.y - a.y * b.x;
+    const dotV = (a, b) => a.x * b.x + a.y * b.y;
+    const len = a => Math.hypot(a.x, a.y);
+    const par = x => x < 0 ? `(${x})` : String(x);
+    const $ = id => document.getElementById(id);
+
+    function setupCanvas(canvas, w, h) {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return ctx;
+    }
+
+    function drawGrid(ctx, w, h) {
+        ctx.strokeStyle = css('--grid');
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let x = 0; x <= w; x += 20) { ctx.moveTo(x + .5, 0); ctx.lineTo(x + .5, h); }
+        for (let y = 0; y <= h; y += 20) { ctx.moveTo(0, y + .5); ctx.lineTo(w, y + .5); }
+        ctx.stroke();
+    }
+
+    function arrow(ctx, from, to, color, width = 2.5) {
+        const dx = to.x - from.x, dy = to.y - from.y, l = Math.hypot(dx, dy);
+        if (l < 1) return;
+        const ux = dx / l, uy = dy / l, head = Math.min(12, l * 0.4);
+        ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width; ctx.setLineDash([]);
+        ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(to.x - ux * head * .8, to.y - uy * head * .8); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(to.x, to.y);
+        ctx.lineTo(to.x - ux * head - uy * head * .45, to.y - uy * head + ux * head * .45);
+        ctx.lineTo(to.x - ux * head + uy * head * .45, to.y - uy * head - ux * head * .45);
+        ctx.closePath(); ctx.fill();
+    }
+
+    function label(ctx, text, p, color, dx = 8, dy = -8, weight = 600) {
+        ctx.font = `${weight} 13px system-ui, sans-serif`;
+        ctx.fillStyle = color;
+        ctx.fillText(text, p.x + dx, p.y + dy);
+    }
+
+    function handle(ctx, p, name, color, dx = 10, dy = -10) {
+        ctx.fillStyle = css('--panel'); ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        if (name) label(ctx, name, p, color, dx, dy);
+    }
+
+    //generic dragging of points on a canvas
+    function makeDraggable(canvas, w, h, getPoints, onChange) {
+        let dragged = null;
+        const toCanvas = e => {
+            const r = canvas.getBoundingClientRect();
+            return {
+                x: Math.round(Math.max(0, Math.min(w, (e.clientX - r.left) * w / r.width))),
+                y: Math.round(Math.max(0, Math.min(h, (e.clientY - r.top) * h / r.height)))
+            };
+        };
+        const pick = p => getPoints().find(q => Math.hypot(q.x - p.x, q.y - p.y) <= 14) || null;
+        canvas.addEventListener('pointerdown', e => {
+            const p = toCanvas(e);
+            dragged = pick(p);
+            if (dragged) { canvas.setPointerCapture(e.pointerId); canvas.style.cursor = 'grabbing'; }
+        });
+        canvas.addEventListener('pointermove', e => {
+            const p = toCanvas(e);
+            if (dragged) { dragged.x = p.x; dragged.y = p.y; onChange(); }
+            else canvas.style.cursor = pick(p) ? 'grab' : 'crosshair';
+        });
+        const stop = () => { dragged = null; canvas.style.cursor = 'crosshair'; };
+        canvas.addEventListener('pointerup', stop);
+        canvas.addEventListener('pointercancel', stop);
+    }
+
+    // ---------------- PART 1: cross of two vectors ----------------
+
+    const CW1 = 720, CH1 = 380;
+    const crossCanvas = $('crossCanvas');
+    let crossCtx = setupCanvas(crossCanvas, CW1, CH1);
+    const base = {x: 250, y: 230};
+    //u = first vector, v = second vector, the turn goes from u to v
+    const uTip = {x: 470, y: 230};
+    const vTip = {x: 330, y: 100};
+
+    function drawCross() {
+        const ctx = crossCtx;
+        const u = sub(uTip, base), v = sub(vTip, base);
+        const c = crossV(u, v), d = dotV(u, v);
+        const theta = Math.atan2(c, d);
+        const color = c > 0 ? css('--pos') : c < 0 ? css('--neg') : css('--muted');
+
+        ctx.clearRect(0, 0, CW1, CH1);
+        drawGrid(ctx, CW1, CH1);
+
+        //parallelogram and its half
+        const far = add(base, add(u, v));
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.14;
+        ctx.beginPath(); ctx.moveTo(base.x, base.y); ctx.lineTo(uTip.x, uTip.y); ctx.lineTo(far.x, far.y); ctx.lineTo(vTip.x, vTip.y); ctx.closePath(); ctx.fill();
+        ctx.globalAlpha = 0.28;
+        ctx.beginPath(); ctx.moveTo(base.x, base.y); ctx.lineTo(uTip.x, uTip.y); ctx.lineTo(vTip.x, vTip.y); ctx.closePath(); ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = color; ctx.lineWidth = 1.2; ctx.setLineDash([5, 4]);
+        ctx.beginPath(); ctx.moveTo(uTip.x, uTip.y); ctx.lineTo(far.x, far.y); ctx.lineTo(vTip.x, vTip.y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(uTip.x, uTip.y); ctx.lineTo(vTip.x, vTip.y); ctx.stroke();
+        ctx.setLineDash([]);
+        if (Math.abs(c) > 2000) {
+            const center = {x: (base.x + far.x) / 2, y: (base.y + far.y) / 2};
+            label(ctx, 'parallelogram = |cross|', center, color, -70, 4, 500);
+            const tc = {x: (base.x + uTip.x + vTip.x) / 3, y: (base.y + uTip.y + vTip.y) / 3};
+            label(ctx, 'triangle = |cross| / 2', tc, color, -62, 4, 500);
+        }
+
+        //turn arc from u to v
+        if (len(u) > 20 && len(v) > 20 && Math.abs(theta) > 0.02) {
+            const a1 = Math.atan2(u.y, u.x);
+            const r = 42;
+            ctx.strokeStyle = color; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(base.x, base.y, r, a1, a1 + theta, theta < 0); ctx.stroke();
+            const end = a1 + theta, s = Math.sign(theta);
+            const tip = {x: base.x + Math.cos(end) * r, y: base.y + Math.sin(end) * r};
+            const tdir = {x: -Math.sin(end) * s, y: Math.cos(end) * s};
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(tip.x + tdir.x * 7, tip.y + tdir.y * 7);
+            ctx.lineTo(tip.x - tdir.x * 3 + Math.cos(end) * 5, tip.y - tdir.y * 3 + Math.sin(end) * 5);
+            ctx.lineTo(tip.x - tdir.x * 3 - Math.cos(end) * 5, tip.y - tdir.y * 3 - Math.sin(end) * 5);
+            ctx.closePath(); ctx.fill();
+            const mid = a1 + theta / 2;
+            label(ctx, 'θ', {x: base.x + Math.cos(mid) * (r + 14), y: base.y + Math.sin(mid) * (r + 14)}, color, -4, 5);
+        }
+
+        //normal symbol: into the screen (⊗) for positive z, out of the screen (⊙) for negative z
+        const sym = {x: 40, y: 40};
+        ctx.strokeStyle = color; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(sym.x, sym.y, 13, 0, Math.PI * 2); ctx.stroke();
+        if (c > 0) {
+            ctx.beginPath(); ctx.moveTo(sym.x - 7, sym.y - 7); ctx.lineTo(sym.x + 7, sym.y + 7); ctx.moveTo(sym.x + 7, sym.y - 7); ctx.lineTo(sym.x - 7, sym.y + 7); ctx.stroke();
+        } else if (c < 0) {
+            ctx.fillStyle = color; ctx.beginPath(); ctx.arc(sym.x, sym.y, 3.5, 0, Math.PI * 2); ctx.fill();
+        }
+        label(ctx, c > 0 ? 'normal (0, 0, z) into the screen' : c < 0 ? 'normal (0, 0, z) out of the screen' : 'z = 0, no normal', sym, color, 22, 5, 500);
+
+        arrow(ctx, base, uTip, css('--u'), 3);
+        arrow(ctx, base, vTip, css('--v'), 3);
+        label(ctx, 'u (1st)', add(base, {x: u.x * .55, y: u.y * .55}), css('--u'), 4, 18);
+        label(ctx, 'v (2nd)', add(base, {x: v.x * .55, y: v.y * .55}), css('--v'), -52, -6);
+        handle(ctx, base, '0', css('--line'), -18, 18);
+        handle(ctx, uTip, '', css('--u'));
+        handle(ctx, vTip, '', css('--v'));
+
+        //panel
+        $('crossValue').textContent = c;
+        const badge = $('crossBadge');
+        badge.style.color = color;
+        badge.textContent = c > 0 ? 'v is turned clockwise from u' : c < 0 ? 'v is turned counter-clockwise from u' : 'u and v are parallel';
+        $('crossFormula').innerHTML = `cross(u, v) = ux·vy − uy·vx<br>= ${par(u.x)}·${par(v.y)} − ${par(u.y)}·${par(v.x)}<br>= ${u.x * v.y} − ${par(u.y * v.x)} = <b>${c}</b>`;
+        const deg = theta * 180 / Math.PI;
+        $('crossGeometric').innerHTML = `= |u| · |v| · sin θ<br>= ${len(u).toFixed(2)} · ${len(v).toFixed(2)} · sin(${deg.toFixed(1)}°)<br>= ${len(u).toFixed(2)} · ${len(v).toFixed(2)} · ${Math.sin(theta).toFixed(3)} = <b>${(len(u) * len(v) * Math.sin(theta)).toFixed(0)}</b>`;
+        $('crossArea').innerHTML = `parallelogram = |cross| = ${Math.abs(c)} px²<br>triangle = |cross| / 2 = ${Math.abs(c) / 2} px²`;
+        $('cross3d').innerHTML = `(${u.x}, ${u.y}, 0) × (${v.x}, ${v.y}, 0)<br>= (${u.y}·0 − 0·${par(v.y)}, 0·${par(v.x)} − ${par(u.x)}·0, <b>${c}</b>)<br>= (0, 0, <b>${c}</b>)`;
+    }
+
+    makeDraggable(crossCanvas, CW1, CH1, () => [uTip, vTip], drawCross);
+
+    // ---------------- PART 2: shoelace ----------------
+
+    const CW2 = 720, CH2 = 480;
+    const shoeCanvas = $('shoeCanvas');
+    let shoeCtx = setupCanvas(shoeCanvas, CW2, CH2);
+    const origin = {x: 70, y: 60};
+    const presets = {
+        square: [[380, 170], [380, 330], [540, 330], [540, 170]],
+        lshape: [[360, 130], [580, 130], [580, 240], [470, 240], [470, 400], [360, 400]],
+        triangle: [[430, 140], [610, 390], [320, 340]]
+    };
+    let poly = [];
+    let step = 0;
+
+    function loadPreset(name) {
+        poly = presets[name].map(([x, y]) => ({x, y}));
+        step = 0;
+        drawShoe();
+    }
+
+    function terms() {
+        const n = poly.length;
+        const out = [];
+        let sum = 0;
+        for (let i = 0; i < n; i++) {
+            const a = sub(poly[i], origin), b = sub(poly[(i + 1) % n], origin);
+            const c = crossV(a, b);
+            sum += c;
+            out.push({i, a, b, c, sum});
+        }
+        return out;
+    }
+
+    //point inside triangle test using the same side test as the Java code
+    function inTriangle(p, a, b, c) {
+        const d1 = crossV(sub(b, a), sub(p, a)), d2 = crossV(sub(c, b), sub(p, b)), d3 = crossV(sub(a, c), sub(p, c));
+        const hasNeg = d1 < 0 || d2 < 0 || d3 < 0, hasPos = d1 > 0 || d2 > 0 || d3 > 0;
+        return !(hasNeg && hasPos);
+    }
+
+    //draws the running sum point by point: every cell gets +1 / -1 from each triangle covering it
+    function drawCoverage(ctx, list) {
+        const CELL = 3;
+        const pos = css('--pos'), neg = css('--neg');
+        const tris = list.filter(t => t.c !== 0).map(t => {
+            const a = origin, b = add(origin, t.a), c = add(origin, t.b);
+            return {a, b, c, s: Math.sign(t.c),
+                minX: Math.min(a.x, b.x, c.x), maxX: Math.max(a.x, b.x, c.x),
+                minY: Math.min(a.y, b.y, c.y), maxY: Math.max(a.y, b.y, c.y)};
+        });
+        if (!tris.length) return;
+        for (let y = 0; y < CH2; y += CELL) {
+            for (let x = 0; x < CW2; x += CELL) {
+                const p = {x: x + CELL / 2, y: y + CELL / 2};
+                let net = 0;
+                for (const t of tris) {
+                    if (p.x < t.minX || p.x > t.maxX || p.y < t.minY || p.y > t.maxY) continue;
+                    if (inTriangle(p, t.a, t.b, t.c)) net += t.s;
+                }
+                if (net === 0) continue;
+                ctx.fillStyle = net > 0 ? pos : neg;
+                ctx.globalAlpha = Math.min(0.22 * Math.abs(net), 0.6);
+                ctx.fillRect(x, y, CELL, CELL);
+            }
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    function drawShoe() {
+        const ctx = shoeCtx;
+        const n = poly.length;
+        step = Math.max(0, Math.min(n, step));
+        const all = terms();
+        const shown = all.slice(0, step);
+
+        ctx.clearRect(0, 0, CW2, CH2);
+        drawGrid(ctx, CW2, CH2);
+        drawCoverage(ctx, shown);
+
+        //outlines of added triangles, the last one stronger
+        shown.forEach((t, k) => {
+            const b = add(origin, t.a), c = add(origin, t.b);
+            const color = t.c > 0 ? css('--pos') : css('--neg');
+            const current = k === shown.length - 1;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = current ? 2 : 1;
+            ctx.globalAlpha = current ? 1 : 0.45;
+            ctx.setLineDash(current ? [] : [4, 4]);
+            ctx.beginPath(); ctx.moveTo(origin.x, origin.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.closePath(); ctx.stroke();
+        });
+        ctx.globalAlpha = 1;
+        ctx.setLineDash([]);
+
+        //polygon edges with direction arrows
+        for (let i = 0; i < n; i++) {
+            const a = poly[i], b = poly[(i + 1) % n];
+            const done = i < step;
+            ctx.strokeStyle = css('--line');
+            ctx.lineWidth = done ? 2.5 : 1.5;
+            ctx.globalAlpha = done ? 1 : 0.55;
+            ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+            const m = {x: (a.x + b.x) / 2, y: (a.y + b.y) / 2};
+            const d = sub(b, a), l = len(d);
+            if (l > 30) {
+                const ux = d.x / l, uy = d.y / l;
+                ctx.fillStyle = css('--line');
+                ctx.beginPath();
+                ctx.moveTo(m.x + ux * 7, m.y + uy * 7);
+                ctx.lineTo(m.x - ux * 5 - uy * 5, m.y - uy * 5 + ux * 5);
+                ctx.lineTo(m.x - ux * 5 + uy * 5, m.y - uy * 5 - ux * 5);
+                ctx.closePath(); ctx.fill();
+            }
+        }
+        ctx.globalAlpha = 1;
+
+        poly.forEach((p, i) => handle(ctx, p, 'P' + i, css('--line')));
+        handle(ctx, origin, 'O', css('--muted'), -16, -10);
+
+        updateShoePanel(all);
+    }
+
+    function updateShoePanel(all) {
+        const n = poly.length;
+        const sum = step ? all[step - 1].sum : 0;
+        const complete = step === n;
+        $('stepInfo').textContent = `edge ${step} / ${n}`;
+        $('sumLabel').textContent = complete ? 'area2 = Σ cross' : `running sum after ${step} of ${n} edges`;
+        $('sumValue').textContent = sum;
+
+        const badge = $('sumBadge'), note = $('sumNote');
+        if (!complete) {
+            badge.textContent = 'not finished';
+            badge.style.color = css('--muted');
+            note.textContent = 'The running sum still contains area outside the polygon. Keep stepping until the last edge closes the polygon.';
+        } else if (sum < 0) {
+            badge.textContent = 'CCW on screen';
+            badge.style.color = css('--neg');
+            note.textContent = `area2 < 0, so the polygon is counter-clockwise on screen and orientatePolygonCCW keeps the order. Area = |${sum}| / 2 = ${Math.abs(sum) / 2} px².`;
+        } else if (sum > 0) {
+            badge.textContent = 'CW on screen';
+            badge.style.color = css('--pos');
+            note.textContent = `area2 > 0, so the polygon is clockwise on screen and orientatePolygonCCW reverses it. Area = ${sum} / 2 = ${sum / 2} px².`;
+        } else {
+            badge.textContent = 'no orientation';
+            badge.style.color = css('--muted');
+            note.textContent = 'area2 = 0: the polygon has no area (all points on one line), so it has no orientation.';
+        }
+
+        if (step === 0) {
+            $('termFormula').innerHTML = 'Press Next to add the first edge.';
+        } else {
+            const t = all[step - 1], j = (t.i + 1) % n;
+            $('termFormula').innerHTML =
+                `P${t.i} → P${j} &nbsp; (relative to O)<br>cross = x${t.i}·y${j} − x${j}·y${t.i}<br>= ${par(t.a.x)}·${par(t.b.y)} − ${par(t.b.x)}·${par(t.a.y)}<br>= ${t.a.x * t.b.y} − ${par(t.b.x * t.a.y)} = <b>${t.c}</b> &nbsp;→ triangle (O, P${t.i}, P${j}) = ${t.c / 2}`;
+        }
+
+        $('termTable').innerHTML = all.map((t, k) => {
+            const cls = k >= step ? 'future' : k === step - 1 ? 'current' : '';
+            const color = t.c > 0 ? 'var(--pos)' : t.c < 0 ? 'var(--neg)' : 'var(--muted)';
+            return `<tr class="${cls}"><td>P${t.i}→P${(t.i + 1) % n}</td><td>(${t.a.x}, ${t.a.y})</td><td>(${t.b.x}, ${t.b.y})</td>` +
+                `<td style="color:${color}">${t.c}</td><td>${t.sum}</td></tr>`;
+        }).join('');
+    }
+
+    makeDraggable(shoeCanvas, CW2, CH2, () => [...poly, origin], drawShoe);
+    $('prevBtn').addEventListener('click', () => { step--; drawShoe(); });
+    $('nextBtn').addEventListener('click', () => { step++; drawShoe(); });
+    $('allBtn').addEventListener('click', () => { step = poly.length; drawShoe(); });
+    $('clearBtn').addEventListener('click', () => { step = 0; drawShoe(); });
+    $('reverseBtn').addEventListener('click', () => { poly.reverse(); drawShoe(); });
+    $('originBtn').addEventListener('click', () => { origin.x = 0; origin.y = 0; drawShoe(); });
+    $('presetSelect').addEventListener('change', e => loadPreset(e.target.value));
+
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { drawCross(); drawShoe(); });
+
+    drawCross();
+    loadPreset('square');
+    step = 2;
+    drawShoe();
+</script>
+</body>
+</html>

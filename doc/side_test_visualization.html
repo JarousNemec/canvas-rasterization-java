@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Point Side Test</title>
+    <style>
+        /* Layout: canvas on the left, live calculation panel on the right; stacks on narrow screens */
+        :root {
+            --bg: #eef1f4; --panel: #ffffff; --fg: #1d2430; --muted: #5d6878; --border: #d5dbe2; --grid: #e6e9ee;
+            --line: #1d2430; --v: #2563c9; --n: #c2410c; --t: #15803d; --proj: #7c3aed;
+            --pos: rgba(194, 65, 12, 0.08); --neg: rgba(37, 99, 201, 0.06);
+            --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #14181e; --panel: #1c222a; --fg: #e4e8ee; --muted: #9aa5b4; --border: #2e3640; --grid: #222932;
+                --line: #e4e8ee; --v: #6aa1ff; --n: #ff8a4c; --t: #4fd17f; --proj: #b28cff;
+                --pos: rgba(255, 138, 76, 0.10); --neg: rgba(106, 161, 255, 0.08);
+                color-scheme: dark;
+            }
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: system-ui, "Segoe UI", sans-serif; font-size: 14px; background: var(--bg); color: var(--fg); padding: 24px 16px; }
+        h1 { font-size: 20px; margin: 0 0 4px; }
+        .sub { color: var(--muted); margin: 0 0 16px; }
+        .wrap { max-width: 1180px; margin: 0 auto; }
+        .grid { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+        .stage { flex: 1 1 620px; min-width: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
+        canvas { display: block; width: 100%; height: auto; touch-action: none; cursor: crosshair; border-radius: 4px; }
+        .panel { flex: 1 1 340px; min-width: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+        .result { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+        .result .value { font-family: var(--mono); font-size: 32px; font-weight: 600; font-variant-numeric: tabular-nums; }
+        .badge { padding: 3px 10px; border-radius: 999px; font-weight: 600; font-size: 13px; border: 1px solid currentColor; }
+        .label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 4px; }
+        table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+        th, td { text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--border); }
+        th:first-child, td:first-child { text-align: left; }
+        th { font-family: system-ui, sans-serif; font-weight: 600; color: var(--muted); font-size: 12px; }
+        .formula { font-family: var(--mono); font-size: 13px; line-height: 1.7; background: var(--bg); border-radius: 6px; padding: 8px 10px; overflow-x: auto; white-space: nowrap; }
+        .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+        .options { display: flex; flex-direction: column; gap: 6px; }
+        .options label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+        .note { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 0; }
+        input:focus-visible { outline: 2px solid var(--v); outline-offset: 2px; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <h1>Point side test with dot product</h1>
+    <p class="sub">Drag point <b>P</b> (and the line endpoints <b>A</b>, <b>B</b>). The sign of n · t tells which side of line AB the point is on.</p>
+
+    <div class="grid">
+        <div class="stage"><canvas id="canvas"></canvas></div>
+
+        <div class="panel">
+            <div>
+                <div class="label">Result n · t</div>
+                <div class="result">
+                    <span class="value" id="dotValue">0</span>
+                    <span class="badge" id="sideBadge">on the line</span>
+                </div>
+                <p class="note" id="distanceNote"></p>
+            </div>
+
+            <div>
+                <div class="label">Vectors</div>
+                <table>
+                    <thead><tr><th>vector</th><th>x</th><th>y</th><th>length</th></tr></thead>
+                    <tbody>
+                    <tr><td><span class="sw" style="background:var(--v)"></span>v = B − A</td><td id="vx"></td><td id="vy"></td><td id="vLen"></td></tr>
+                    <tr><td><span class="sw" style="background:var(--n)"></span>n = normal</td><td id="nx"></td><td id="ny"></td><td id="nLen"></td></tr>
+                    <tr><td><span class="sw" style="background:var(--t)"></span>t = P − A</td><td id="tx"></td><td id="ty"></td><td id="tLen"></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div>
+                <div class="label">Component form</div>
+                <div class="formula" id="formulaComponents"></div>
+            </div>
+            <div>
+                <div class="label">Geometric form</div>
+                <div class="formula" id="formulaGeometric"></div>
+            </div>
+            <div>
+                <div class="label">Same value as cross(v, t)</div>
+                <div class="formula" id="formulaCross"></div>
+            </div>
+
+            <div>
+                <div class="label">Normal direction</div>
+                <div class="options">
+                    <label><input type="radio" name="normalMode" id="normalRight" value="right" checked> n = (−vy, vx) &nbsp;<span class="note">right of v on screen</span></label>
+                    <label><input type="radio" name="normalMode" id="normalLeft" value="left"> n = (vy, −vx) &nbsp;<span class="note">left of v on screen</span></label>
+                </div>
+            </div>
+
+            <p class="note">
+                <span class="sw" style="background:var(--proj)"></span>The purple segment is the projection of t onto n.
+                The dot product equals |n| · (signed length of that projection), so its sign only depends on whether P is on the side n points to.
+                Canvas Y axis points down, which is why (−vy, vx) points to the right of v here and not to the left as in math textbooks.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const W = 720, H = 460;
+    const HANDLE_RADIUS = 9;
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    const A = {x: 180, y: 300};
+    const B = {x: 520, y: 170};
+    const P = {x: 430, y: 340};
+    let normalMode = 'right';
+    let dragged = null;
+
+    function setupCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = W * dpr;
+        canvas.height = H * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function css(name) {
+        return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
+    //vector math
+    const sub = (p, q) => ({x: p.x - q.x, y: p.y - q.y});
+    const add = (p, q) => ({x: p.x + q.x, y: p.y + q.y});
+    const scale = (p, s) => ({x: p.x * s, y: p.y * s});
+    const dot = (p, q) => p.x * q.x + p.y * q.y;
+    const cross = (p, q) => p.x * q.y - p.y * q.x;
+    const len = p => Math.hypot(p.x, p.y);
+
+    function normalOf(v) {
+        return normalMode === 'right' ? {x: -v.y, y: v.x} : {x: v.y, y: -v.x};
+    }
+
+    function compute() {
+        const v = sub(B, A);
+        const n = normalOf(v);
+        const t = sub(P, A);
+        const d = dot(n, t);
+        const nLen = len(n), tLen = len(t);
+        const cosPhi = nLen && tLen ? d / (nLen * tLen) : 0;
+        const phi = Math.acos(Math.max(-1, Math.min(1, cosPhi))) * 180 / Math.PI;
+        return {v, n, t, d, nLen, tLen, vLen: len(v), cosPhi, phi};
+    }
+
+    function arrow(from, to, color, width = 2.5) {
+        const dx = to.x - from.x, dy = to.y - from.y;
+        const l = Math.hypot(dx, dy);
+        if (l < 1) return;
+        const ux = dx / l, uy = dy / l;
+        const head = Math.min(12, l * 0.4);
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = width;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(to.x - ux * head * 0.8, to.y - uy * head * 0.8);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(to.x, to.y);
+        ctx.lineTo(to.x - ux * head - uy * head * 0.45, to.y - uy * head + ux * head * 0.45);
+        ctx.lineTo(to.x - ux * head + uy * head * 0.45, to.y - uy * head - ux * head * 0.45);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    function label(text, p, color, dx = 8, dy = -8) {
+        ctx.font = '600 13px system-ui, sans-serif';
+        ctx.fillStyle = color;
+        ctx.fillText(text, p.x + dx, p.y + dy);
+    }
+
+    function handle(p, name, color) {
+        ctx.fillStyle = css('--panel');
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        label(name, p, color, 10, -10);
+    }
+
+    function draw() {
+        const r = compute();
+        const {v, n, t, d} = r;
+        ctx.clearRect(0, 0, W, H);
+
+        //grid
+        ctx.strokeStyle = css('--grid');
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let x = 0; x <= W; x += 20) { ctx.moveTo(x + .5, 0); ctx.lineTo(x + .5, H); }
+        for (let y = 0; y <= H; y += 20) { ctx.moveTo(0, y + .5); ctx.lineTo(W, y + .5); }
+        ctx.stroke();
+
+        const vLen = r.vLen;
+        if (vLen > 0) {
+            const vUnit = scale(v, 1 / vLen);
+            const nUnit = scale(n, 1 / r.nLen);
+            const far = 3000;
+            const L1 = add(A, scale(vUnit, -far)), L2 = add(A, scale(vUnit, far));
+
+            //half-planes: positive side (where n points) and negative side
+            for (const [dir, color] of [[1, css('--pos')], [-1, css('--neg')]]) {
+                const off = scale(nUnit, far * dir);
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.moveTo(L1.x, L1.y); ctx.lineTo(L2.x, L2.y);
+                ctx.lineTo(L2.x + off.x, L2.y + off.y); ctx.lineTo(L1.x + off.x, L1.y + off.y);
+                ctx.closePath();
+                ctx.fill();
+            }
+            label('n · t > 0', add(A, add(scale(vUnit, -140), scale(nUnit, 60))), css('--n'), 0, 0);
+            label('n · t < 0', add(A, add(scale(vUnit, -140), scale(nUnit, -60))), css('--v'), 0, 0);
+
+            //infinite line through A, B
+            ctx.strokeStyle = css('--line');
+            ctx.globalAlpha = 0.35;
+            ctx.lineWidth = 1;
+            ctx.setLineDash([6, 6]);
+            ctx.beginPath(); ctx.moveTo(L1.x, L1.y); ctx.lineTo(L2.x, L2.y); ctx.stroke();
+
+            //axis of the normal through A (where the projection lives)
+            const N1 = add(A, scale(nUnit, -far)), N2 = add(A, scale(nUnit, far));
+            ctx.strokeStyle = css('--n');
+            ctx.setLineDash([2, 5]);
+            ctx.beginPath(); ctx.moveTo(N1.x, N1.y); ctx.lineTo(N2.x, N2.y); ctx.stroke();
+            ctx.globalAlpha = 1;
+
+            //projection of t onto n
+            const s = d / (r.nLen * r.nLen);
+            const Q = add(A, scale(n, s));
+            ctx.strokeStyle = css('--proj');
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([5, 4]);
+            ctx.beginPath(); ctx.moveTo(P.x, P.y); ctx.lineTo(Q.x, Q.y); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.lineWidth = 6;
+            ctx.globalAlpha = 0.55;
+            ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(Q.x, Q.y); ctx.stroke();
+            ctx.globalAlpha = 1;
+
+            //right-angle mark at Q
+            if (Math.abs(d) > 1 && len(sub(P, Q)) > 14) {
+                const toP = scale(sub(P, Q), 1 / len(sub(P, Q)));
+                const toA = scale(nUnit, -Math.sign(s));
+                const k = 9;
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.moveTo(Q.x + toP.x * k, Q.y + toP.y * k);
+                ctx.lineTo(Q.x + toP.x * k + toA.x * k, Q.y + toP.y * k + toA.y * k);
+                ctx.lineTo(Q.x + toA.x * k, Q.y + toA.y * k);
+                ctx.stroke();
+            }
+
+            //angle phi between n and t
+            if (r.tLen > 20) {
+                const a1 = Math.atan2(n.y, n.x), a2 = Math.atan2(t.y, t.x);
+                let diff = a2 - a1;
+                while (diff > Math.PI) diff -= 2 * Math.PI;
+                while (diff < -Math.PI) diff += 2 * Math.PI;
+                ctx.strokeStyle = css('--muted');
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(A.x, A.y, 34, a1, a1 + diff, diff < 0);
+                ctx.stroke();
+                const mid = a1 + diff / 2;
+                label('φ', {x: A.x + Math.cos(mid) * 46, y: A.y + Math.sin(mid) * 46}, css('--muted'), -4, 5);
+            }
+
+            //segment AB
+            ctx.strokeStyle = css('--line');
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+
+            //vectors
+            arrow(A, B, css('--v'), 3);
+            label('v', add(A, scale(v, 0.55)), css('--v'), 6, -8);
+            arrow(A, add(A, n), css('--n'), 3);
+            label('n', add(A, scale(n, 0.6)), css('--n'), 8, 4);
+            arrow(A, P, css('--t'), 3);
+            label('t', add(A, scale(t, 0.55)), css('--t'), 6, 14);
+        }
+
+        handle(A, 'A', css('--line'));
+        handle(B, 'B', css('--line'));
+        handle(P, 'P', css('--t'));
+
+        updatePanel(r);
+    }
+
+    const fmt = x => Number.isInteger(x) ? String(x) : x.toFixed(2);
+    const par = x => x < 0 ? `(${fmt(x)})` : fmt(x);
+    const $ = id => document.getElementById(id);
+
+    function updatePanel(r) {
+        const {v, n, t, d} = r;
+        $('vx').textContent = v.x; $('vy').textContent = v.y; $('vLen').textContent = r.vLen.toFixed(2);
+        $('nx').textContent = n.x; $('ny').textContent = n.y; $('nLen').textContent = r.nLen.toFixed(2);
+        $('tx').textContent = t.x; $('ty').textContent = t.y; $('tLen').textContent = r.tLen.toFixed(2);
+
+        $('dotValue').textContent = d;
+        const badge = $('sideBadge');
+        if (d > 0) { badge.textContent = 'side where n points'; badge.style.color = css('--n'); }
+        else if (d < 0) { badge.textContent = 'opposite side'; badge.style.color = css('--v'); }
+        else { badge.textContent = 'on the line'; badge.style.color = css('--muted'); }
+
+        $('distanceNote').textContent = r.nLen
+            ? `Signed distance from the line = n · t / |n| = ${(d / r.nLen).toFixed(2)} px`
+            : 'A and B are the same point, the line is undefined.';
+
+        $('formulaComponents').innerHTML =
+            `n · t = nx·tx + ny·ty<br>= ${par(n.x)}·${par(t.x)} + ${par(n.y)}·${par(t.y)}<br>= ${n.x * t.x} + ${par(n.y * t.y)} = <b>${d}</b>`;
+        $('formulaGeometric').innerHTML =
+            `n · t = |n| · |t| · cos φ<br>= ${r.nLen.toFixed(2)} · ${r.tLen.toFixed(2)} · cos ${r.phi.toFixed(1)}°<br>= ${r.nLen.toFixed(2)} · ${r.tLen.toFixed(2)} · ${r.cosPhi.toFixed(3)} = <b>${(r.nLen * r.tLen * r.cosPhi).toFixed(0)}</b>`;
+        const c = cross(v, t);
+        $('formulaCross').innerHTML =
+            `cross(v, t) = vx·ty − vy·tx<br>= ${par(v.x)}·${par(t.y)} − ${par(v.y)}·${par(t.x)} = <b>${c}</b>` +
+            (normalMode === 'left' ? ` &nbsp;(sign flipped vs. n · t)` : '');
+    }
+
+    //dragging
+    function toCanvas(e) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: Math.round(Math.max(0, Math.min(W, (e.clientX - rect.left) * W / rect.width))),
+            y: Math.round(Math.max(0, Math.min(H, (e.clientY - rect.top) * H / rect.height)))
+        };
+    }
+
+    function pick(p) {
+        const tol = HANDLE_RADIUS * 1.6;
+        for (const h of [P, A, B]) if (Math.hypot(h.x - p.x, h.y - p.y) <= tol) return h;
+        return null;
+    }
+
+    canvas.addEventListener('pointerdown', e => {
+        const p = toCanvas(e);
+        dragged = pick(p) || P; //clicking empty space moves P there
+        dragged.x = p.x; dragged.y = p.y;
+        canvas.setPointerCapture(e.pointerId);
+        draw();
+    });
+    canvas.addEventListener('pointermove', e => {
+        const p = toCanvas(e);
+        if (dragged) { dragged.x = p.x; dragged.y = p.y; draw(); }
+        else canvas.style.cursor = pick(p) ? 'grab' : 'crosshair';
+    });
+    const stopDrag = () => { dragged = null; };
+    canvas.addEventListener('pointerup', stopDrag);
+    canvas.addEventListener('pointercancel', stopDrag);
+
+    document.querySelectorAll('input[name="normalMode"]').forEach(input =>
+        input.addEventListener('change', () => { normalMode = input.value; draw(); }));
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+
+    setupCanvas();
+    draw();
+</script>
+</body>
+</html>
