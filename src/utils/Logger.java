@@ -5,7 +5,7 @@ import java.time.format.DateTimeFormatter;
 
 public class Logger {
 
-    // Time formater (etc. 14:25:08)
+    // Time formatter (e.g. 14:25:08)
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     // Static constructor for initial logger welcome text

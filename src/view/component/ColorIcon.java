@@ -1,6 +1,5 @@
 package view.component;
 
-import utils.ColorUtil;
 
 import javax.swing.*;
 import java.awt.*;

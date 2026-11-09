@@ -59,7 +59,7 @@ public class Line implements Rasterizable, Selectable, VertexMovable, Clippable 
 
     @Override
     public String toString() {
-        return "Line{" + "start= X:" + points[0].getX() + " ,Y:" + points[0].getY() + ", end= X:" + points[1].getX() + " ,Y:" + points[1].getY() + '}';
+        return "Line{" + "start= X:" + points[0].getX() + ", Y:" + points[0].getY() + ", end= X:" + points[1].getX() + ", Y:" + points[1].getY() + '}';
     }
 
     @Override

@@ -3,7 +3,6 @@ package controller.tool;
 import model.Point2D;
 import model.SeedFill;
 
-import java.awt.*;
 import java.awt.event.MouseEvent;
 
 public class FillerTool extends EditorTool {

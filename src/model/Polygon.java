@@ -2,7 +2,7 @@ package model;
 
 import clip.ClipContext;
 import clip.Clippable;
-import clip.SutherlandHogman;
+import clip.SutherlandHodgman;
 import edit.VertexListEditable;
 import fill.Fillable;
 import fill.ScanLineFiller;
@@ -143,7 +143,7 @@ public class Polygon implements Rasterizable, Fillable, Selectable, VertexListEd
         var clipPolygon = context.getClipPolygon();
         if (!context.isPolygonClippingEnabled() || clipPolygon == null)
             return this;
-        var clippedPoints = SutherlandHogman.clip(this.points, clipPolygon.points);
+        var clippedPoints = SutherlandHodgman.clip(this.points, clipPolygon.points);
         if (clippedPoints.isEmpty())
             return null;
         var clippedPolygon = new Polygon(clippedPoints);

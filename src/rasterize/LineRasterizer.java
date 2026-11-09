@@ -5,7 +5,6 @@ import raster.Raster;
 import utils.ColorUtil;
 import utils.Logger;
 
-import java.awt.*;
 
 public abstract class LineRasterizer implements Rasterizer {
     protected Raster raster;

@@ -34,7 +34,7 @@ public class Controller2D {
 
     private final ClipContext clipContext;
 
-    //Model that contains all rasterizables and allowing us to render them all in one cycle in order they were added
+    //Model that contains all rasterizables and allows us to render them all in one cycle in the order they were added
     private final CanvasModel canvasModel;
 
     private ToolType activeToolType = ToolType.LINE;
@@ -104,7 +104,7 @@ public class Controller2D {
     }
 
     private void setActiveToolType(ToolType activeToolType) {
-        Logger.info("Drawing mode changing from:" + this.activeToolType + "to: " + activeToolType);
+        Logger.info("Drawing mode changing from: " + this.activeToolType + " to: " + activeToolType);
         this.activeToolType = activeToolType;
         setActiveTool();
         drawScene();
@@ -202,7 +202,7 @@ public class Controller2D {
     private void clearScene() {
         canvasModel.removeAllRasterizables();
         drawScene();
-        Logger.warning("User clear the scene.");
+        Logger.warning("User cleared the scene.");
     }
 
     private void drawScene() {

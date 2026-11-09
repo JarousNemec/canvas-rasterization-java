@@ -31,7 +31,7 @@ public class LineRasterizerTrivial extends LineRasterizer {
             return;
         }
 
-        //Tangent is the opposite side over the hypotenuse. For example dy / dx depending on used quadrant.
+        //Tangent is the opposite side over the adjacent side. For example dy / dx depending on used quadrant.
         if (Math.abs(dx) >= Math.abs(dy)) {
 
             //Swap points if one is bigger than the other
@@ -48,7 +48,7 @@ public class LineRasterizerTrivial extends LineRasterizer {
             float k = dy / dx;
             float q = y1 - k * x1; //y = kx + q -> q = y - kx
 
-            //Iterate though every point and draw it
+            //Iterate through every point and draw it
             for (int x = x1; x <= x2; x++) {
                 int y = Math.round(k * x + q);
                 raster.setPixel(x, y, color);
@@ -69,7 +69,7 @@ public class LineRasterizerTrivial extends LineRasterizer {
             float k = dx / dy;
             float q = x1 - k * y1;
 
-            //Iterate though every point and draw it
+            //Iterate through every point and draw it
             for (int y = y1; y <= y2; y++) {
                 int x = Math.round(k * y + q);
                 raster.setPixel(x, y, color);

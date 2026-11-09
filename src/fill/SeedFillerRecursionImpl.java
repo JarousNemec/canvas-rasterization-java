@@ -26,7 +26,7 @@ public class SeedFillerRecursionImpl implements SeedFiller {
         seedFillRecursion(seed.getX(), seed.getY());
     }
 
-    //useless because it consumes whole stack and than overflows in large areas, better use Stack or Queue implementation
+    //useless because it consumes the whole stack and then overflows in large areas, better use Stack or Queue implementation
     private void seedFillRecursion(int x, int y) {
         if (!raster.contains(x, y))
             return;

@@ -18,7 +18,7 @@ public class CohenSutherland {
         byte aCode = getPointCode(a, clipWindow);
         byte bCode = getPointCode(b, clipWindow);
 
-        // step by step, or direction by direction, clipping the point by the ones in its byte code
+        // step by step, or direction by direction, clipping the point by the bits set in its code
         // For example: p has code 1001, so the cycle is there because first we get a new intersection for the LEFT, which is the xMin line
         // then in the next cycle we recalculate the code for p and get 0001, so we calculate the intersection again, but this time with the TOP, which is the yMin line
         // as a result we get the intersection of the line right at the border of the clip window
@@ -47,7 +47,7 @@ public class CohenSutherland {
         int yMin = clipWindow.getYMin();
 
         //lineIntersection works with infinite lines, so any two points on the edge line are enough
-        // code & DIRECTION is basic AND operation so we will get number that isnt 0 when there are any common bytes in both numbers / bytes
+        // code & DIRECTION is a basic AND operation, so we get a number that isn't 0 when both codes have any common bits
         if ((code & LEFT) != 0)
             return GeometryUtil.lineIntersection(a, b, new Point2D(xMin, 0), new Point2D(xMin, 1));
         if ((code & RIGHT) != 0)

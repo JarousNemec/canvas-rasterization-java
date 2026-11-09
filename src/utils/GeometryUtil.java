@@ -68,7 +68,7 @@ public class GeometryUtil {
     }
 
     public static double distanceSquared(double x1, double y1, double x2, double y2) {
-        //calculate squared distance between two point
+        //calculate squared distance between two points
         double diffX = x2 - x1;
         double diffY = y2 - y1;
         return diffX * diffX + diffY * diffY;
@@ -128,7 +128,7 @@ public class GeometryUtil {
         return new Point2D(startX + Integer.signum(dx) * longerCoordinate, startY + Integer.signum(dy) * longerCoordinate);
     }
 
-    //intersection between two lines AB and CD, returns point of the intersection when there is any and null when the lines are parallel or lays on each other or the length of one line is zero because points are coincident
+    //intersection between two lines AB and CD, returns point of the intersection when there is any and null when the lines are parallel or lie on each other or the length of one line is zero because points are coincident
     //t is on AB, so AB = clipped edge, CD = clip edge
     public static Vec2 lineIntersection(Vec2 a, Vec2 b, Vec2 c, Vec2 d) {
         double numerator = (c.x() - a.x()) * (d.y() - c.y()) + (a.y() - c.y()) * (d.x() - c.x());
@@ -231,7 +231,7 @@ public class GeometryUtil {
 
         //the sum of turns is always a whole number of rounds: 360 for convex polygon, 720+ for a star
         //compare with the value in between, comparing with exactly 360 fails on rounding errors
-        // turnSide == 0 means that all points are in aligned in line
+        // turnSide == 0 means that all points are aligned in a line
         if (turnSide == 0 || Math.abs(turnAngle) > 540)
             return false;
         return true;
@@ -247,7 +247,7 @@ public class GeometryUtil {
         double e2x = next.getX() - curr.getX();
         double e2y = next.getY() - curr.getY();
 
-        // mathematical prescription using atan that gives us oriented angle between two vectors
+        // formula using atan2 that gives us the oriented angle between two vectors
         // math.atan2(u[0]*v[1] - u[1]*v[0], u[0]*v[0] + u[1]*v[1])
         return Math.atan2(cross(e1x, e1y, e2x, e2y), dot(e1x, e1y, e2x, e2y));
     }
