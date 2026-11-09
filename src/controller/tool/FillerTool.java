@@ -1,9 +1,7 @@
 package controller.tool;
 
-import fill.Fillable;
 import model.Point2D;
 import model.SeedFill;
-import rasterize.Rasterizable;
 
 import java.awt.*;
 import java.awt.event.MouseEvent;

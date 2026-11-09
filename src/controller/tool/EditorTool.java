@@ -1,7 +1,5 @@
 package controller.tool;
 
-import fill.Fillable;
-import rasterize.Rasterizable;
 import rasterize.RasterizationContext;
 
 import java.awt.*;
