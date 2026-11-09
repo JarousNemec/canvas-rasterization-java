@@ -6,19 +6,16 @@ import rasterize.RasterizationContext;
 import rasterize.RasterizationMode;
 import select.Hit;
 import select.HitType;
-import select.SelectionService;
 import utils.GeometryUtil;
 import utils.Logger;
 import java.awt.event.MouseEvent;
 
 public class LineTool extends EditorTool {
 
-    private final SelectionService selectionService;
     private Line currentLine = new Line();
 
     public LineTool(ToolContext toolContext) {
         super(toolContext);
-        selectionService = new SelectionService(toolContext.getCanvasModel());
     }
 
     @Override
@@ -73,7 +70,7 @@ public class LineTool extends EditorTool {
     }
 
     private void handleLineRemove(MouseEvent e) {
-        Hit hit = EditorToolUtil.handleHitTest(selectionService, e.getPoint());
+        Hit hit = EditorToolUtil.handleHitTest(toolContext.getCanvasModel().getSelectables(), e.getPoint());
         if (hit != null && hit.hitType() == HitType.EDGE && hit.target() instanceof Line line) {
             toolContext.getCanvasModel().removeRasterizable(line);
             Logger.info("Line removed: " + line);

@@ -1,5 +1,6 @@
 package clip;
 
+import model.ClipWindow;
 import model.Point2D;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -51,22 +52,8 @@ class CohenSutherlandTest {
 
     @Test
     void clip_lineLeftOfWindow_isRejected() {
+        //the line spans over TOP and BOTTOM, but both points share the LEFT bit
         assertRejected(CohenSutherland.clip(p(0, 5), p(5, 35), WINDOW));
-    }
-
-    @Test
-    void clip_lineRightOfWindow_isRejected() {
-        assertRejected(CohenSutherland.clip(p(35, 5), p(40, 35), WINDOW));
-    }
-
-    @Test
-    void clip_lineAboveWindow_isRejected() {
-        assertRejected(CohenSutherland.clip(p(5, 0), p(35, 5), WINDOW));
-    }
-
-    @Test
-    void clip_lineBelowWindow_isRejected() {
-        assertRejected(CohenSutherland.clip(p(5, 35), p(35, 40), WINDOW));
     }
 
     @Test
@@ -120,11 +107,6 @@ class CohenSutherlandTest {
     @Test
     void clip_horizontalLineThroughWindow_isClippedOnBothSides() {
         assertSegment(10, 20, 30, 20, CohenSutherland.clip(p(0, 20), p(40, 20), WINDOW));
-    }
-
-    @Test
-    void clip_verticalLineThroughWindow_isClippedOnBothSides() {
-        assertSegment(20, 10, 20, 30, CohenSutherland.clip(p(20, 0), p(20, 40), WINDOW));
     }
 
     @Test

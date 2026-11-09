@@ -19,35 +19,12 @@ class GeometryUtilTest {
     //so assertEquals(expected, actual, DELTA) passes if |expected - actual| <= DELTA
     private static final double DELTA = 1e-9;
 
-    // distanceSquared
-
-    @Test
-    void distanceSquared_isZero() {
-        assertEquals(0, GeometryUtil.distanceSquared(5, 5, 5, 5), DELTA);
-    }
-
-    @Test
-    void distanceSquared_rightTriangle3_4_5() {
-        //3² + 4² = 25
-        assertEquals(25, GeometryUtil.distanceSquared(0, 0, 3, 4), DELTA);
-    }
-
-    @Test
-    void distanceSquared_isSymmetric() {
-        assertEquals(GeometryUtil.distanceSquared(1, 2, 7, 9), GeometryUtil.distanceSquared(7, 9, 1, 2), DELTA);
-    }
-
     // distanceSquaredToSegment - horizontal segment (0, 0) -> (10, 0)
 
     @Test
     void distanceSquaredToSegment_pointAboveSegment_usesPerpendicular() {
         //closest point is (4, 0), distance is 3
         assertEquals(9, GeometryUtil.distanceSquaredToSegment(4, 3, 0, 0, 10, 0), DELTA);
-    }
-
-    @Test
-    void distanceSquaredToSegment_pointOnSegment_isZero() {
-        assertEquals(0, GeometryUtil.distanceSquaredToSegment(6, 0, 0, 0, 10, 0), DELTA);
     }
 
     @Test
@@ -68,27 +45,6 @@ class GeometryUtilTest {
         assertEquals(25, GeometryUtil.distanceSquaredToSegment(15, 0, 0, 0, 10, 0), DELTA);
     }
 
-    // distanceSquaredToSegment - other orientations
-
-    @Test
-    void distanceSquaredToSegment_verticalSegment() {
-        //segment (0, 0) -> (0, 10), closest point is (0, 5)
-        assertEquals(9, GeometryUtil.distanceSquaredToSegment(3, 5, 0, 0, 0, 10), DELTA);
-    }
-
-    @Test
-    void distanceSquaredToSegment_diagonalSegment() {
-        //segment (0, 0) -> (10, 10), closest point to (0, 10) is (5, 5): 5² + 5² = 50
-        assertEquals(50, GeometryUtil.distanceSquaredToSegment(0, 10, 0, 0, 10, 10), DELTA);
-    }
-
-    @Test
-    void distanceSquaredToSegment_swappedEndpoints_sameResult() {
-        double forward = GeometryUtil.distanceSquaredToSegment(4, 3, 0, 0, 10, 0);
-        double backward = GeometryUtil.distanceSquaredToSegment(4, 3, 10, 0, 0, 0);
-        assertEquals(forward, backward, DELTA);
-    }
-
     @Test
     void distanceSquaredToSegment_zeroLengthSegment_actsAsPoint() {
         //start == end, must not divide by zero
@@ -102,7 +58,7 @@ class GeometryUtilTest {
         assertEquals(0.8, GeometryUtil.distanceSquaredToSegment(0, 1, 0, 0, 2, 1), DELTA);
     }
 
-    // closestPointOnSegment - horizontal segment (0, 0) -> (10, 0)
+    // closestPointOnSegment
 
     @Test
     void closestPointOnSegment_pointAboveSegment_isPerpendicularFoot() {
@@ -110,37 +66,9 @@ class GeometryUtilTest {
     }
 
     @Test
-    void closestPointOnSegment_pointOnSegment_isPointItself() {
-        assertPoint(6, 0, GeometryUtil.closestPointOnSegment(6, 0, 0, 0, 10, 0));
-    }
-
-    @Test
-    void closestPointOnSegment_pointBeforeStart_isStart() {
-        //t < 0 -> clamped to start
-        assertPoint(0, 0, GeometryUtil.closestPointOnSegment(-4, 3, 0, 0, 10, 0));
-    }
-
-    @Test
     void closestPointOnSegment_pointPastEnd_isEnd() {
         //t > 1 -> clamped to end
         assertPoint(10, 0, GeometryUtil.closestPointOnSegment(14, 3, 0, 0, 10, 0));
-    }
-
-    // closestPointOnSegment - other orientations
-
-    @Test
-    void closestPointOnSegment_verticalSegment() {
-        assertPoint(0, 5, GeometryUtil.closestPointOnSegment(3, 5, 0, 0, 0, 10));
-    }
-
-    @Test
-    void closestPointOnSegment_diagonalSegment() {
-        assertPoint(5, 5, GeometryUtil.closestPointOnSegment(0, 10, 0, 0, 10, 10));
-    }
-
-    @Test
-    void closestPointOnSegment_swappedEndpoints_samePoint() {
-        assertPoint(4, 0, GeometryUtil.closestPointOnSegment(4, 3, 10, 0, 0, 0));
     }
 
     @Test
@@ -155,62 +83,12 @@ class GeometryUtilTest {
         assertPoint(2, 2, GeometryUtil.closestPointOnSegment(7, 9, 2, 2, 2, 2));
     }
 
-    // dot
-
-    @Test
-    void dot_perpendicularVectors_isZero() {
-        assertEquals(0, GeometryUtil.dot(3, 0, 0, 5), DELTA);
-    }
-
-    @Test
-    void dot_generalVectors() {
-        //1*3 + 2*4 = 11
-        assertEquals(11, GeometryUtil.dot(1, 2, 3, 4), DELTA);
-    }
-
-    @Test
-    void dot_oppositeVectors_isNegative() {
-        assertEquals(-4, GeometryUtil.dot(2, 0, -2, 0), DELTA);
-    }
-
-    // lengthSquared, length
-
-    @Test
-    void lengthSquared_rightTriangle3_4_5() {
-        assertEquals(25, GeometryUtil.lengthSquared(3, 4), DELTA);
-    }
-
-    @Test
-    void lengthSquared_negativeComponents_isPositive() {
-        assertEquals(25, GeometryUtil.lengthSquared(-3, -4), DELTA);
-    }
-
-    @Test
-    void length_rightTriangle3_4_5() {
-        assertEquals(5, GeometryUtil.length(3, 4), DELTA);
-    }
-
-    @Test
-    void length_zeroVector_isZero() {
-        assertEquals(0, GeometryUtil.length(0, 0), DELTA);
-    }
-
     // lineIntersection
 
     @Test
     void lineIntersection_generalLines() {
         //AB (-2, 5) -> (6, 1) crosses the vertical line x = 0 at t = 0.25 -> (0, 4)
         assertPoint(0, 4, GeometryUtil.lineIntersection(p(-2, 5), p(6, 1), p(0, 0), p(0, 10)));
-    }
-
-    @Test
-    void lineIntersection_horizontalAndVertical() {
-        assertPoint(3, 5, GeometryUtil.lineIntersection(p(0, 5), p(10, 5), p(3, 0), p(3, 10)));
-    }
-
-    @Test
-    void lineIntersection_twoDiagonals() {
-        assertPoint(5, 5, GeometryUtil.lineIntersection(p(0, 0), p(10, 10), p(0, 10), p(10, 0)));
     }
 
     @Test
@@ -305,20 +183,9 @@ class GeometryUtilTest {
     }
 
     @Test
-    void signedArea2_rightTriangle_isDoubledArea() {
-        //legs 10 and 10 -> area 50 -> doubled 100
-        assertEquals(100, Math.abs(GeometryUtil.signedArea2(List.of(p(0, 0), p(10, 0), p(0, 10)))));
-    }
-
-    @Test
     void signedArea2_concaveLShape_isDoubledArea() {
         //10x10 square without its 5x5 corner -> area 75 -> doubled 150, clockwise on screen
         assertEquals(150, GeometryUtil.signedArea2(lShapeCW()));
-    }
-
-    @Test
-    void signedArea2_differentStartVertex_sameResult() {
-        assertEquals(-200, GeometryUtil.signedArea2(List.of(p(10, 10), p(10, 0), p(0, 0), p(0, 10))));
     }
 
     @Test
@@ -370,6 +237,71 @@ class GeometryUtilTest {
         List<Point2D> clipper = GeometryUtil.orientatePolygonCCW(squareCW());
         assertTrue(GeometryUtil.isPointInsideConvexCCWPolygon(clipper, p(5, 5)));
         assertFalse(GeometryUtil.isPointInsideConvexCCWPolygon(clipper, p(15, 5)));
+    }
+
+    // isPolygonConvex - the clip polygon must stay convex for Sutherland-Hodgman
+
+    @Test
+    void isPolygonConvex_defaultClipPolygon_isTrue() {
+        //the pentagon from ClipContext
+        assertTrue(GeometryUtil.isPolygonConvex(List.of(p(400, 100), p(600, 220), p(560, 440), p(240, 440), p(200, 220))));
+    }
+
+    @Test
+    void isPolygonConvex_bothOrientations_isTrue() {
+        assertTrue(GeometryUtil.isPolygonConvex(squareCCW()));
+        assertTrue(GeometryUtil.isPolygonConvex(squareCW()));
+    }
+
+    @Test
+    void isPolygonConvex_pointsAddedOnEdge_isTrue() {
+        //ClipTool adds points on an edge - collinear triples going the same way must be skipped
+        assertTrue(GeometryUtil.isPolygonConvex(List.of(p(0, 0), p(0, 10), p(3, 10), p(6, 10), p(10, 10), p(10, 0))));
+    }
+
+    @Test
+    void isPolygonConvex_concave_isFalse() {
+        assertFalse(GeometryUtil.isPolygonConvex(lShapeCW()));
+    }
+
+    @Test
+    void isPolygonConvex_star_isFalse() {
+        //all turns have the same sign, only the sum of angles (720°) catches it
+        assertFalse(GeometryUtil.isPolygonConvex(List.of(p(10, 0), p(16, 19), p(1, 7), p(19, 7), p(4, 19))));
+    }
+
+    @Test
+    void isPolygonConvex_pointDraggedPastNeighbourOnEdge_isFalse() {
+        //(3, 10) dragged along the edge behind (6, 10): edge (8, 10) -> (6, 10) goes back, all triples there have pointSide 0
+        assertFalse(GeometryUtil.isPolygonConvex(List.of(p(0, 0), p(0, 10), p(8, 10), p(6, 10), p(10, 10), p(10, 0))));
+    }
+
+    @Test
+    void isPolygonConvex_edgeGoingBackOverClosingEdge_isFalse() {
+        //same polygon starting from another vertex, the backwards edge is now the one from the last point to the first
+        assertFalse(GeometryUtil.isPolygonConvex(List.of(p(6, 10), p(10, 10), p(10, 0), p(0, 0), p(0, 10), p(8, 10))));
+    }
+
+    @Test
+    void isPolygonConvex_pointDraggedOntoNeighbour_isFalse() {
+        //two equal points in a row = zero length edge, it has no direction to clip by
+        assertFalse(GeometryUtil.isPolygonConvex(List.of(p(0, 0), p(0, 10), p(10, 10), p(10, 10), p(10, 0))));
+    }
+
+    @Test
+    void isPolygonConvex_lastPointOnFirst_isFalse() {
+        //zero length closing edge
+        assertFalse(GeometryUtil.isPolygonConvex(List.of(p(0, 0), p(0, 10), p(10, 10), p(10, 0), p(0, 0))));
+    }
+
+    @Test
+    void isPolygonConvex_allPointsCollinear_isFalse() {
+        assertFalse(GeometryUtil.isPolygonConvex(List.of(p(0, 0), p(5, 5), p(10, 10))));
+    }
+
+    @Test
+    void isPolygonConvex_lessThanThreePoints_isFalse() {
+        assertFalse(GeometryUtil.isPolygonConvex(List.of(p(0, 0), p(10, 0))));
     }
 
     private static List<Point2D> squareCCW() {

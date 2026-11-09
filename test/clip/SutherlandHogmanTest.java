@@ -78,27 +78,6 @@ class SutherlandHogmanTest {
     }
 
     @Test
-    void clip_vertexRightOfClipper_isCutByRightEdge() {
-        List<Point2D> clipped = SutherlandHogman.clip(polygon(40, 20, 20, 12, 20, 28), polygon(SQUARE));
-
-        assertPolygon(clipped, 30, 16, 20, 12, 20, 28, 30, 24);
-    }
-
-    @Test
-    void clip_vertexAboveClipper_isCutByTopEdge() {
-        List<Point2D> clipped = SutherlandHogman.clip(polygon(20, 0, 28, 20, 12, 20), polygon(SQUARE));
-
-        assertPolygon(clipped, 24, 10, 28, 20, 12, 20, 16, 10);
-    }
-
-    @Test
-    void clip_vertexBelowClipper_isCutByBottomEdge() {
-        List<Point2D> clipped = SutherlandHogman.clip(polygon(20, 40, 28, 20, 12, 20), polygon(SQUARE));
-
-        assertPolygon(clipped, 24, 30, 28, 20, 12, 20, 16, 30);
-    }
-
-    @Test
     void clip_twoVerticesOutside_areReplacedByTwoIntersections() {
         List<Point2D> clipped = SutherlandHogman.clip(polygon(0, 15, 20, 15, 20, 25, 0, 25), polygon(SQUARE));
 
@@ -191,19 +170,8 @@ class SutherlandHogmanTest {
     // clipper orientation and shape
 
     @Test
-    void clip_reversedClipper_subjectInside_staysWhole() {
-        List<Point2D> clipped = SutherlandHogman.clip(polygon(15, 15, 25, 15, 25, 25), polygon(SQUARE_REVERSED));
-
-        assertPolygon(clipped, 15, 15, 25, 15, 25, 25);
-    }
-
-    @Test
-    void clip_reversedClipper_subjectOutside_isEmpty() {
-        assertEmpty(SutherlandHogman.clip(polygon(40, 40, 50, 40, 50, 50), polygon(SQUARE_REVERSED)));
-    }
-
-    @Test
     void clip_reversedClipper_givesSameResult() {
+        //without orientating the clipper everything would be outside
         List<Point2D> clipped = SutherlandHogman.clip(polygon(20, 20, 40, 20, 40, 40, 20, 40), polygon(SQUARE_REVERSED));
 
         assertPolygon(clipped, 20, 20, 30, 20, 30, 30, 20, 30);

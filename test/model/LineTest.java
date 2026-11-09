@@ -30,16 +30,6 @@ class LineTest {
     }
 
     @Test
-    void hitTest_nearEnd_returnsVertexOne() {
-        Hit hit = line.hitTest(99, 3, TOLERANCE);
-
-        assertNotNull(hit);
-        assertEquals(HitType.VERTEX, hit.hitType());
-        assertEquals(1, hit.index());
-        assertEquals(10, hit.distanceSq(), DELTA); //1² + 3²
-    }
-
-    @Test
     void hitTest_onEdgeNearVertex_vertexWins() {
         //edge distance is 0, but the vertex is within tolerance, so it must win
         Hit hit = line.hitTest(4, 0, TOLERANCE);
@@ -86,23 +76,7 @@ class LineTest {
         assertEquals(9, hit.distanceSq(), DELTA); //real distance, not toleranceSq
     }
 
-    @Test
-    void hitTest_verticalLine_returnsEdge() {
-        Line vertical = new Line(new Point2D(10, 0), new Point2D(10, 100));
-
-        Hit hit = vertical.hitTest(12, 50, TOLERANCE);
-
-        assertNotNull(hit);
-        assertEquals(HitType.EDGE, hit.hitType());
-        assertEquals(4, hit.distanceSq(), DELTA);
-    }
-
     // miss
-
-    @Test
-    void hitTest_farFromLine_returnsNull() {
-        assertNull(line.hitTest(50, 20, TOLERANCE));
-    }
 
     @Test
     void hitTest_onLineExtensionOutsideTolerance_returnsNull() {

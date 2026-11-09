@@ -1,5 +1,6 @@
 package clip;
 
+import model.ClipWindow;
 import model.Point2D;
 import model.Polygon;
 

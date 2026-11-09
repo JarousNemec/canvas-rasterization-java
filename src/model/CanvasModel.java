@@ -1,6 +1,7 @@
 package model;
 
 import rasterize.Rasterizable;
+import select.Selectable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,6 +13,16 @@ public class CanvasModel {
     }
     public List<Rasterizable> getRasterizables() {
         return rasterizables;
+    }
+
+    // only the rasterizables that can be selected, in the same order (last = on top)
+    public List<Selectable> getSelectables() {
+        List<Selectable> selectables = new ArrayList<>();
+        for (Rasterizable rasterizable : rasterizables) {
+            if (rasterizable instanceof Selectable selectable)
+                selectables.add(selectable);
+        }
+        return selectables;
     }
 
     public int getRasterizablesCount() {

@@ -140,7 +140,7 @@ public class Controller2D {
                 window.setFillColorChooserEnabled(true);
                 break;
             case CLIP:
-                activeTool = new ClipTool(toolContext);
+                activeTool = new ClipTool(toolContext, clipContext);
                 window.setLineColorChooserEnabled(false);
                 window.setFillColorChooserEnabled(false);
                 break;
@@ -229,15 +229,7 @@ public class Controller2D {
     private void drawClippers() {
         var clipWindow = clipContext.getClipWindow();
         if (clipContext.isLineClippingEnabled() && clipWindow != null) {
-            int xMin = clipWindow.getXMin();
-            int xMax = clipWindow.getXMax();
-            int yMin = clipWindow.getYMin();
-            int yMax = clipWindow.getYMax();
-            lineRasterizer.setColor(ColorUtil.CLIP_WINDOW_COLOR);
-            lineRasterizer.rasterize(xMin, yMin, xMax, yMin);
-            lineRasterizer.rasterize(xMax, yMin, xMax, yMax);
-            lineRasterizer.rasterize(xMax, yMax, xMin, yMax);
-            lineRasterizer.rasterize(xMin, yMax, xMin, yMin);
+            clipWindow.visualize(rasterizationContext);
         }
 
         var clipPolygon = clipContext.getClipPolygon();

@@ -1,15 +1,17 @@
 package controller.tool;
 
 import select.Hit;
-import select.SelectionService;
+import select.Selectable;
+import select.SelectionUtil;
 import utils.Logger;
 
 import java.awt.*;
+import java.util.List;
 
 public class EditorToolUtil {
 
-    public static Hit handleHitTest(SelectionService selectionService, Point mousePosition) {
-        Hit result = selectionService.findHit((int) mousePosition.getX(), (int) mousePosition.getY());
+    public static Hit handleHitTest(List<? extends Selectable> candidates, Point mousePosition) {
+        Hit result = SelectionUtil.findHit(candidates, (int) mousePosition.getX(), (int) mousePosition.getY());
         if (result != null) {
             Logger.info("Found an existing " + result);
             return result;

@@ -11,7 +11,7 @@ import java.util.Collections;
 
 public class ScanLineFiller implements Filler {
 
-    private Raster raster;
+    private final Raster raster;
     private int fillColor = Color.blue.getRGB();
     private Polygon polygon;
 
@@ -60,6 +60,7 @@ public class ScanLineFiller implements Filler {
                 }
             }
 
+            //todo: implement custom sorting alg like quick or heap or merge sort or bubble
             Collections.sort(intersectionsX);
 
             for (int i = 0; i < intersectionsX.size()-1; i = i + 2) {

@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Konvexita clip polygonu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* layout: one reading column; case gallery as a 3/2/1 grid of "graph paper" cards; playground = canvas + inspector side by side */
+:root {
+  --bg: #f3f6f9;
+  --surface: #ffffff;
+  --ink: #16202b;
+  --muted: #5a6876;
+  --line: #d3dbe3;
+  --grid: #e7ecf1;
+  --accent: #2753c0;
+  --clip: rgba(39, 83, 192, 0.13);
+  --ok: #1d7f47;
+  --bad: #c2392b;
+  --ok-soft: rgba(29, 127, 71, 0.11);
+  --bad-soft: rgba(194, 57, 43, 0.11);
+  --code-bg: #eef2f6;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1318; --surface: #151c23; --ink: #e2e8ee; --muted: #93a1ae; --line: #2a3541; --grid: #1c252e;
+    --accent: #7ea3ff; --clip: rgba(126, 163, 255, 0.16); --ok: #4fc68b; --bad: #ff7a69;
+    --ok-soft: rgba(79, 198, 139, 0.13); --bad-soft: rgba(255, 122, 105, 0.13); --code-bg: #1a222a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1318; --surface: #151c23; --ink: #e2e8ee; --muted: #93a1ae; --line: #2a3541; --grid: #1c252e;
+  --accent: #7ea3ff; --clip: rgba(126, 163, 255, 0.16); --ok: #4fc68b; --bad: #ff7a69;
+  --ok-soft: rgba(79, 198, 139, 0.13); --bad-soft: rgba(255, 122, 105, 0.13); --code-bg: #1a222a;
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+}
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-block: 40px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid;
+  gap: 48px;
+}
+h1, h2, h3 { text-wrap: balance; margin: 0; line-height: 1.2; }
+h1 { font-size: clamp(26px, 4vw, 36px); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 22px; font-weight: 600; }
+h3 { font-size: 16px; font-weight: 600; }
+p { margin: 0; }
+code, .mono { font-family: var(--font-mono); font-size: 0.92em; }
+.eyebrow {
+  font-family: var(--font-mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+}
+.lead { max-width: 68ch; color: var(--muted); font-size: 16px; }
+.head { display: grid; gap: 12px; }
+section { display: grid; gap: 20px; }
+.section-head { display: grid; gap: 8px; max-width: 72ch; }
+.section-head p { color: var(--muted); }
+
+/* how it decides */
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.rule { border-top: 2px solid var(--line); padding-top: 10px; display: grid; gap: 4px; }
+.rule strong { font-weight: 600; }
+.rule p { color: var(--muted); font-size: 14px; }
+.rule.hole { border-top-color: var(--bad); }
+
+/* gallery */
+.cases { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 920px) { .cases { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .cases { grid-template-columns: minmax(0, 1fr); } }
+.case {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+  display: grid; grid-template-rows: auto auto 1fr; overflow: hidden;
+}
+.case.is-bug { border-color: var(--bad); }
+.case canvas { display: block; width: 100%; aspect-ratio: 4 / 3; max-width: 100%; border-bottom: 1px solid var(--line); }
+.case-body { padding: 14px 16px 16px; display: grid; gap: 10px; align-content: start; }
+.case-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.case p.note { color: var(--muted); font-size: 14px; }
+.results { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; align-items: baseline; }
+.results dt { color: var(--muted); }
+.results dd { margin: 0; min-width: 0; }
+.chip {
+  display: inline-block; font-family: var(--font-mono); font-size: 12px; font-weight: 500;
+  padding: 1px 7px; border-radius: 3px; border: 1px solid transparent; white-space: nowrap;
+}
+.chip.ok { color: var(--ok); background: var(--ok-soft); }
+.chip.bad { color: var(--bad); background: var(--bad-soft); }
+.chip.neutral { color: var(--muted); border-color: var(--line); }
+.reason { color: var(--muted); font-size: 12px; font-family: var(--font-mono); overflow-wrap: anywhere; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+.dot.ok { background: var(--ok); }
+.dot.bad { background: var(--bad); }
+.dot.skip { border: 2px solid var(--muted); background: var(--surface); }
+.swatch { width: 16px; height: 11px; background: var(--clip); border: 1px solid var(--accent); display: inline-block; }
+
+/* playground */
+.play { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .play { grid-template-columns: minmax(0, 1fr); } }
+.board { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; display: grid; }
+.board canvas { display: block; width: 100%; aspect-ratio: 3 / 2; max-width: 100%; touch-action: none; cursor: grab; }
+.board canvas.dragging { cursor: grabbing; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px 16px; padding: 12px; border-top: 1px solid var(--line); align-items: center; }
+.toolbar .label { font-size: 12px; color: var(--muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; flex-wrap: wrap; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { padding: 5px 10px; font-size: 13px; cursor: pointer; border-right: 1px solid var(--line); }
+.seg label:last-of-type { border-right: 0; }
+.seg input:checked + label { background: var(--accent); color: var(--surface); }
+.seg input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: -2px; }
+button.preset {
+  font: inherit; font-size: 13px; padding: 5px 10px; border-radius: 5px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); cursor: pointer;
+}
+button.preset:hover { border-color: var(--accent); color: var(--accent); }
+button.preset:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+.inspector { display: grid; gap: 14px; min-width: 0; }
+.status {
+  border: 1px solid var(--line); border-radius: 6px; background: var(--surface); padding: 12px 14px; display: grid; gap: 8px;
+}
+.status-row { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.flash { font-size: 13px; color: var(--bad); min-height: 1.5em; }
+.hint { font-size: 14px; color: var(--muted); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-weight: 500; color: var(--muted); font-size: 12px; }
+tr:last-child td { border-bottom: 0; }
+td.mono { font-family: var(--font-mono); }
+td .chip { font-size: 11px; }
+
+/* fix */
+pre {
+  margin: 0; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px;
+  padding: 14px 16px; overflow-x: auto; font-family: var(--font-mono); font-size: 13px; line-height: 1.6;
+}
+pre .add { color: var(--ok); }
+pre .cm { color: var(--muted); }
+.fix { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .fix { grid-template-columns: minmax(0, 1fr); } }
+.fix ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; color: var(--muted); }
+.fix ul strong { color: var(--ink); font-weight: 600; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .flash.show { animation: blink 0.5s ease-out; }
+  @keyframes blink { from { opacity: 0.2; } to { opacity: 1; } }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="head">
+    <span class="eyebrow">GeometryUtil.isPolygonConvex · ClipTool</span>
+    <h1>Konvexita clip polygonu</h1>
+    <p class="lead">Kontrola konvexity chytí konkávní vrchol, hvězdu i motýlka. Propustí ale dva zvláštní případy: hranu, která se po stejné přímce vrátí zpátky, a dva stejné body za sebou. Oba jdou v <code>ClipTool</code> vyrobit obyčejným tažením myši.</p>
+  </header>
+
+  <section>
+    <div class="section-head">
+      <span class="eyebrow">Jak se rozhoduje</span>
+      <h2>Tři pravidla aktuální implementace</h2>
+    </div>
+    <div class="rules">
+      <div class="rule">
+        <strong>1. Stejné znaménko otoček</strong>
+        <p>Pro každou trojici prev, curr, next se spočítá <code>pointSide</code>. Všechny nenulové výsledky musí mít stejné znaménko.</p>
+      </div>
+      <div class="rule">
+        <strong>2. Součet úhlů ≤ 540°</strong>
+        <p>Konvexní polygon se otočí jednou dokola (360°). Hvězda se otočí dvakrát (720°), proto ji pravidlo 1 samo nechytí.</p>
+      </div>
+      <div class="rule hole">
+        <strong>3. Kolineární trojice se přeskočí</strong>
+        <p>Při <code>pointSide == 0</code> následuje <code>continue</code>. To je správně pro bod ležící na hraně, ale přeskočí se i otočka o 180° a hrana nulové délky.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <span class="eyebrow">Případy</span>
+      <h2>Co kontrola pustí a co ne</h2>
+      <p>Modrá plocha je průnik vnitřních polorovin všech hran. Přesně tuhle oblast použije Sutherland–Hodgman jako ořezovou. U konvexního polygonu je to polygon sám.</p>
+    </div>
+    <div class="legend">
+      <span><i class="dot ok"></i>otočka se stejným znaménkem</span>
+      <span><i class="dot bad"></i>problém (jiné znaménko, otočka o 180°, nulová hrana)</span>
+      <span><i class="dot skip"></i>bod na hraně, přeskočen správně</span>
+      <span><i class="swatch"></i>oblast pro Sutherland–Hodgman</span>
+    </div>
+    <div class="cases" id="cases"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <span class="eyebrow">Vyzkoušej</span>
+      <h2>Tažení jako v ClipTool</h2>
+      <p>Táhni za vrcholy. Body se přichytávají na celočíselnou mřížku, stejně jako pixely na canvasu. Když tah neprojde kontrolou, bod zůstane na poslední platné pozici, stejně jako v <code>handlePointMovement</code>.</p>
+    </div>
+    <div class="play">
+      <div class="board">
+        <canvas id="board" aria-label="Clip polygon, vrcholy jdou přetahovat"></canvas>
+        <div class="toolbar">
+          <span class="label">Kontrola</span>
+          <div class="seg" role="radiogroup" aria-label="Kontrola konvexity">
+            <input type="radio" name="mode" id="mode-current" value="current" checked><label for="mode-current">Aktuální</label>
+            <input type="radio" name="mode" id="mode-fixed" value="fixed"><label for="mode-fixed">Opravená</label>
+            <input type="radio" name="mode" id="mode-none" value="none"><label for="mode-none">Žádná</label>
+          </div>
+          <div class="group">
+            <span class="label">Start</span>
+            <button class="preset" id="preset-edge" type="button">Body na hraně</button>
+            <button class="preset" id="preset-triangle" type="button">Trojúhelník</button>
+          </div>
+        </div>
+      </div>
+      <div class="inspector">
+        <p class="hint" id="hint"></p>
+        <div class="status">
+          <div class="status-row"><span>Aktuální <code>isPolygonConvex</code></span><span id="res-current"></span></div>
+          <div class="reason" id="why-current"></div>
+          <div class="status-row"><span>Opravená verze</span><span id="res-fixed"></span></div>
+          <div class="reason" id="why-fixed"></div>
+          <div class="status-row"><span>Oblast pro Sutherland–Hodgman</span><span id="res-area"></span></div>
+          <div class="flash" id="flash" aria-live="polite"></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Vrchol</th><th>[x, y]</th><th>pointSide</th><th>dot hran</th><th>Aktuální</th><th>Opravená</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <span class="eyebrow">Oprava</span>
+      <h2>Kolineární trojici rozlišit podle skalárního součinu</h2>
+    </div>
+    <div class="fix">
+<pre><span class="cm">// GeometryUtil.isPolygonConvex, uvnitř cyklu</span>
+long result = pointSide(prev, curr, next);
+
+if (result == 0) {
+<span class="add">    //same direction = ok, going back or zero length edge = not convex
+    long dot = (long) (curr.getX() - prev.getX()) * (next.getX() - curr.getX())
+             + (long) (curr.getY() - prev.getY()) * (next.getY() - curr.getY());
+    if (dot &lt;= 0)
+        return false;</span>
+    continue;
+}</pre>
+      <ul>
+        <li><strong>dot &gt; 0:</strong> obě hrany jdou stejným směrem, bod jen leží na hraně. Přeskočí se jako dosud, takže body přidané v <code>ClipTool</code> kliknutím na hranu pořád projdou.</li>
+        <li><strong>dot &lt; 0:</strong> hrana se vrací po stejné přímce (otočka o 180°). Polygon není konvexní.</li>
+        <li><strong>dot = 0:</strong> jedna z hran má nulovou délku, tedy dva stejné body za sebou. Hrana nemá směr, takže pro ořezávání nedává smysl.</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  // ---------- geometry, ported 1:1 from GeometryUtil ----------
+  const cross = (vx, vy, ux, uy) => vx * uy - vy * ux;
+  const pointSide = (a, b, p) => {
+    const vx = b[0] - a[0], vy = b[1] - a[1], tx = p[0] - a[0], ty = p[1] - a[1];
+    return vx * (-ty) + vy * tx;
+  };
+  const angleDeg = (a, b, c) => {
+    const e1x = b[0] - a[0], e1y = b[1] - a[1], e2x = c[0] - b[0], e2y = c[1] - b[1];
+    return Math.atan2(cross(e1x, e1y, e2x, e2y), e1x * e2x + e1y * e2y) * 180 / Math.PI;
+  };
+  const edgeDot = (a, b, c) => (b[0] - a[0]) * (c[0] - b[0]) + (b[1] - a[1]) * (c[1] - b[1]);
+  const signedArea2 = pts => {
+    let s = 0;
+    for (let i = 0; i < pts.length; i++) {
+      const c = pts[i], n = pts[(i + 1) % pts.length];
+      s += cross(c[0], c[1], n[0], n[1]);
+    }
+    return s;
+  };
+
+  // per-vertex classification (vertex = curr of the triple, as in the Java loop)
+  function vertexInfo(pts) {
+    const n = pts.length, out = new Array(n);
+    let firstSign = 0;
+    for (let k = 0; k < n; k++) {
+      const prev = pts[k], curr = pts[(k + 1) % n], next = pts[(k + 2) % n];
+      const idx = (k + 1) % n;
+      const side = pointSide(prev, curr, next);
+      const dot = edgeDot(prev, curr, next);
+      let kind;
+      if (side !== 0) {
+        const s = Math.sign(side);
+        if (firstSign === 0) firstSign = s;
+        kind = s === firstSign ? "turn-ok" : "turn-bad";
+      } else if (dot > 0) kind = "collinear";
+      else if (dot < 0) kind = "reversal";
+      else kind = "dup";
+      out[idx] = { idx, side, dot, kind };
+    }
+    return out;
+  }
+
+  // isPolygonConvex; fixed = with the dot check in the collinear branch
+  function isConvex(pts, fixed) {
+    const n = pts.length;
+    if (n < 3) return { ok: false, reason: "méně než 3 body" };
+    let turnSide = 0, sum = 0;
+    for (let k = 0; k < n; k++) {
+      const prev = pts[k], curr = pts[(k + 1) % n], next = pts[(k + 2) % n];
+      const idx = (k + 1) % n;
+      const side = pointSide(prev, curr, next);
+      if (side === 0) {
+        if (fixed) {
+          const dot = edgeDot(prev, curr, next);
+          if (dot < 0) return { ok: false, reason: `otočka o 180° ve vrcholu ${idx}` };
+          if (dot === 0) return { ok: false, reason: `nulová hrana u vrcholu ${idx}` };
+        }
+        continue;
+      }
+      const dir = Math.sign(side);
+      if (turnSide === 0) turnSide = dir;
+      else if (turnSide !== dir) return { ok: false, reason: `jiné znaménko otočky ve vrcholu ${idx}` };
+      sum += angleDeg(prev, curr, next);
+    }
+    if (turnSide === 0) return { ok: false, reason: "všechny body leží na přímce" };
+    if (Math.abs(sum) > 540) return { ok: false, reason: `součet úhlů ${Math.round(Math.abs(sum))}° > 540°` };
+    return { ok: true, reason: `stejné znaménko, součet úhlů ${Math.round(Math.abs(sum))}°` };
+  }
+
+  // ---------- drawing ----------
+  const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+  function bounds(pts, pad) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const [x, y] of pts) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+    return [x0 - pad, y0 - pad, x1 + pad, y1 + pad];
+  }
+
+  function draw(canvas, pts, view) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (!w || !h) return null;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const C = {
+      surface: tok("--surface"), ink: tok("--ink"), muted: tok("--muted"), grid: tok("--grid"),
+      accent: tok("--accent"), clip: tok("--clip"), ok: tok("--ok"), bad: tok("--bad")
+    };
+    ctx.fillStyle = C.surface;
+    ctx.fillRect(0, 0, w, h);
+
+    const [x0, y0, x1, y1] = view;
+    const scale = Math.min(w / (x1 - x0), h / (y1 - y0));
+    const ox = (w - scale * (x1 - x0)) / 2 - x0 * scale;
+    const oy = (h - scale * (y1 - y0)) / 2 - y0 * scale;
+    const T = p => [ox + p[0] * scale, oy + p[1] * scale];
+
+    // grid
+    ctx.strokeStyle = C.grid;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = Math.ceil((0 - ox) / scale); x <= Math.floor((w - ox) / scale); x++) {
+      const px = Math.round(ox + x * scale) + 0.5; ctx.moveTo(px, 0); ctx.lineTo(px, h);
+    }
+    for (let y = Math.ceil((0 - oy) / scale); y <= Math.floor((h - oy) / scale); y++) {
+      const py = Math.round(oy + y * scale) + 0.5; ctx.moveTo(0, py); ctx.lineTo(w, py);
+    }
+    ctx.stroke();
+
+    // Sutherland-Hodgman region = intersection of the inner half-planes of all non-zero edges
+    const n = pts.length;
+    const s = Math.sign(signedArea2(pts));
+    let insideCount = 0;
+    if (s !== 0 && n >= 3) {
+      ctx.fillStyle = C.clip;
+      const step = 3;
+      for (let py = 0; py < h; py += step) {
+        for (let px = 0; px < w; px += step) {
+          const wx = (px + step / 2 - ox) / scale, wy = (py + step / 2 - oy) / scale;
+          let inside = true;
+          for (let i = 0; i < n && inside; i++) {
+            const a = pts[i], b = pts[(i + 1) % n];
+            if (a[0] === b[0] && a[1] === b[1]) continue;
+            if (cross(b[0] - a[0], b[1] - a[1], wx - a[0], wy - a[1]) * s < 0) inside = false;
+          }
+          if (inside) { insideCount++; ctx.fillRect(px, py, step, step); }
+        }
+      }
+    }
+
+    const info = vertexInfo(pts);
+
+    // edges with direction arrows; the edge that goes back is red
+    for (let i = 0; i < n; i++) {
+      const a = T(pts[i]), b = T(pts[(i + 1) % n]);
+      const badEdge = info[i] && info[i].kind === "reversal";
+      ctx.strokeStyle = badEdge ? C.bad : C.accent;
+      ctx.lineWidth = badEdge ? 2.5 : 2;
+      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+      const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (len > 18) {
+        const t = 0.6, mx = a[0] + (b[0] - a[0]) * t, my = a[1] + (b[1] - a[1]) * t;
+        const ux = (b[0] - a[0]) / len, uy = (b[1] - a[1]) / len, sz = 6;
+        ctx.fillStyle = ctx.strokeStyle;
+        ctx.beginPath();
+        ctx.moveTo(mx + ux * sz, my + uy * sz);
+        ctx.lineTo(mx - ux * sz - uy * sz * 0.7, my - uy * sz + ux * sz * 0.7);
+        ctx.lineTo(mx - ux * sz + uy * sz * 0.7, my - uy * sz - ux * sz * 0.7);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+
+    // vertices + labels (labels pushed away from the centroid; duplicates get stacked)
+    let cx = 0, cy = 0;
+    for (const p of pts) { cx += p[0]; cy += p[1]; }
+    cx /= n; cy /= n;
+    const seen = new Map();
+    ctx.font = `500 12px ${tok("--font-mono")}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    for (let i = 0; i < n; i++) {
+      const p = T(pts[i]);
+      const kind = info[i] ? info[i].kind : "turn-ok";
+      const r = 5.5;
+      ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, Math.PI * 2);
+      if (kind === "collinear") {
+        ctx.fillStyle = C.surface; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = C.muted; ctx.stroke();
+      } else {
+        ctx.fillStyle = (kind === "turn-ok") ? C.ok : C.bad; ctx.fill();
+      }
+      const key = pts[i].join(",");
+      const stack = seen.get(key) || 0;
+      seen.set(key, stack + 1);
+      let dx = pts[i][0] - cx, dy = pts[i][1] - cy;
+      const dl = Math.hypot(dx, dy) || 1;
+      dx /= dl; dy /= dl;
+      const lx = p[0] + dx * 15 + stack * 14, ly = p[1] + dy * 15 - stack * 4;
+      ctx.fillStyle = C.ink;
+      ctx.fillText(String(i), lx, ly);
+    }
+
+    return { T, scale, ox, oy, insideCount };
+  }
+
+  // ---------- gallery ----------
+  const CASES = [
+    {
+      name: "Konvexní pětiúhelník", expected: true,
+      note: "Výchozí clip polygon z ClipContext, zmenšený. Všechny otočky mají stejné znaménko a součet úhlů je 360°.",
+      pts: [[20, 5], [30, 11], [28, 22], [12, 22], [10, 11]]
+    },
+    {
+      name: "Bod na hraně", expected: true,
+      note: "Bod 2 přidaný kliknutím na hranu. Trojice 1, 2, 3 leží na přímce a hrany jdou stejným směrem, přeskočení je správné.",
+      pts: [[0, 0], [0, 10], [5, 10], [10, 10], [10, 0]]
+    },
+    {
+      name: "Konkávní vrchol", expected: false,
+      note: "Vrchol 3 je zatlačený dovnitř. Otočka v něm má opačné znaménko než ostatní.",
+      pts: [[0, 0], [0, 10], [10, 10], [6, 5], [10, 0]]
+    },
+    {
+      name: "Hvězda", expected: false,
+      note: "Všechny otočky mají stejné znaménko, ale polygon se obtočí dvakrát. Chytí ho až součet úhlů (720°).",
+      pts: [[10, 0], [16, 19], [1, 7], [19, 7], [4, 19]]
+    },
+    {
+      name: "Otočka po hraně", expected: false, bug: true,
+      note: "Na spodní hranu přidány body 2 a 3, pak bod 2 přetažen vodorovně za bod 3. Hrana 2→3 jde zpátky a ve vrcholech 2 a 3 se otočí o 180°. Obojí se přeskočí.",
+      pts: [[0, 0], [0, 10], [8, 10], [6, 10], [10, 10], [10, 0]]
+    },
+    {
+      name: "Dva stejné body", expected: false, bug: true,
+      note: "Bod 3 přetažen přesně na pixel bodu 2. Hrana 2→3 má nulovou délku, takže pointSide i dot jsou 0 a obě trojice se přeskočí.",
+      pts: [[0, 0], [0, 10], [10, 10], [10, 10], [10, 0]]
+    }
+  ];
+
+  const yesNo = ok => ok ? "konvexní" : "nekonvexní";
+  const gallery = document.getElementById("cases");
+  const galleryCanvases = [];
+
+  for (const c of CASES) {
+    const cur = isConvex(c.pts, false), fix = isConvex(c.pts, true);
+    const curWrong = cur.ok !== c.expected, fixWrong = fix.ok !== c.expected;
+    const el = document.createElement("article");
+    el.className = "case" + (curWrong ? " is-bug" : "");
+    el.innerHTML = `
+      <canvas aria-label="${c.name}"></canvas>
+      <div class="case-body">
+        <div class="case-title"><h3>${c.name}</h3>${curWrong ? '<span class="chip bad">díra</span>' : '<span class="chip neutral">v pořádku</span>'}</div>
+        <dl class="results">
+          <dt>Má být</dt><dd><span class="chip neutral">${yesNo(c.expected)}</span></dd>
+          <dt>Aktuální</dt><dd><span class="chip ${curWrong ? "bad" : "ok"}">${cur.ok}</span> <span class="reason">${cur.reason}</span></dd>
+          <dt>Opravená</dt><dd><span class="chip ${fixWrong ? "bad" : "ok"}">${fix.ok}</span> <span class="reason">${fix.reason}</span></dd>
+        </dl>
+        <p class="note">${c.note}</p>
+      </div>`;
+    gallery.appendChild(el);
+    galleryCanvases.push({ canvas: el.querySelector("canvas"), pts: c.pts });
+  }
+
+  function drawGallery() {
+    for (const g of galleryCanvases) draw(g.canvas, g.pts, bounds(g.pts, 2.2));
+  }
+
+  // ---------- playground ----------
+  const board = document.getElementById("board");
+  const VIEW = [0, 0, 24, 16];
+  const PRESETS = {
+    edge: {
+      pts: [[4, 2], [4, 14], [9, 14], [14, 14], [20, 14], [20, 2]],
+      hint: "S kontrolou „Aktuální“ táhni bod 2 vodorovně doprava, až za bod 3. Projde to, i když hrana 2→3 vede zpátky a modrá oblast zmizí. Pak přepni na „Opravená“: bod se zastaví těsně před bodem 3."
+    },
+    triangle: {
+      pts: [[6, 3], [4, 13], [19, 12]],
+      hint: "Trojúhelník: přetáhni libovolný vrchol na pozici souseda. S aktuální kontrolou to projde jako dva stejné body, opravená verze tah vrátí."
+    }
+  };
+  let pts = [];
+  let mode = "current";
+  let drag = -1;
+  let geo = null;
+
+  function loadPreset(key) {
+    pts = PRESETS[key].pts.map(p => p.slice());
+    document.getElementById("hint").textContent = PRESETS[key].hint;
+    setFlash("");
+    render();
+  }
+
+  function setFlash(text) {
+    const f = document.getElementById("flash");
+    f.textContent = text;
+    f.classList.remove("show");
+    if (text) { void f.offsetWidth; f.classList.add("show"); }
+  }
+
+  const chip = (ok, good) => `<span class="chip ${good ? "ok" : "bad"}">${ok}</span>`;
+  const KIND_LABEL = {
+    "turn-ok": ["otočka", "otočka"],
+    "turn-bad": ["jiné znaménko", "jiné znaménko"],
+    "collinear": ["přeskočen", "přeskočen"],
+    "reversal": ["přeskočen", "otočka 180°"],
+    "dup": ["přeskočen", "nulová hrana"]
+  };
+  const KIND_GOOD = {
+    "turn-ok": [true, true], "turn-bad": [false, false], "collinear": [true, true],
+    "reversal": [false, false], "dup": [false, false]
+  };
+
+  function render() {
+    geo = draw(board, pts, VIEW);
+    const cur = isConvex(pts, false), fix = isConvex(pts, true);
+    // reference = the fixed check (it agrees with the brute-force reference on distinct points)
+    document.getElementById("res-current").innerHTML = chip(cur.ok, cur.ok === fix.ok);
+    document.getElementById("why-current").textContent = cur.reason;
+    document.getElementById("res-fixed").innerHTML = chip(fix.ok, true);
+    document.getElementById("why-fixed").textContent = fix.reason;
+    const area = geo ? geo.insideCount : 0;
+    document.getElementById("res-area").innerHTML = area > 0
+      ? '<span class="chip ok">neprázdná</span>'
+      : '<span class="chip bad">prázdná, ořízne vše</span>';
+
+    const info = vertexInfo(pts);
+    const rows = info.map(v => {
+      const [lc, lf] = KIND_LABEL[v.kind];
+      const [gc, gf] = KIND_GOOD[v.kind];
+      // in the current check a reversal/dup is "skipped" = silently accepted, mark it red because it should not be
+      const curCls = (v.kind === "reversal" || v.kind === "dup") ? "bad" : (gc ? "ok" : "bad");
+      return `<tr>
+        <td class="mono">${v.idx}</td>
+        <td class="mono">[${pts[v.idx][0]}, ${pts[v.idx][1]}]</td>
+        <td class="mono">${v.side}</td>
+        <td class="mono">${v.dot}</td>
+        <td><span class="chip ${curCls}">${lc}</span></td>
+        <td><span class="chip ${gf ? "ok" : "bad"}">${lf}</span></td>
+      </tr>`;
+    }).join("");
+    document.getElementById("rows").innerHTML = rows;
+  }
+
+  function toWorld(ev) {
+    const r = board.getBoundingClientRect();
+    const px = ev.clientX - r.left, py = ev.clientY - r.top;
+    return [(px - geo.ox) / geo.scale, (py - geo.oy) / geo.scale, px, py];
+  }
+
+  board.addEventListener("pointerdown", ev => {
+    if (!geo) return;
+    const [, , px, py] = toWorld(ev);
+    let best = -1, bestD = 18 * 18;
+    // last one wins on overlap, so a duplicate on top can be pulled off again
+    for (let i = 0; i < pts.length; i++) {
+      const p = geo.T(pts[i]);
+      const d = (p[0] - px) ** 2 + (p[1] - py) ** 2;
+      if (d <= bestD) { bestD = d; best = i; }
+    }
+    if (best >= 0) {
+      drag = best;
+      board.setPointerCapture(ev.pointerId);
+      board.classList.add("dragging");
+      setFlash("");
+    }
+  });
+
+  board.addEventListener("pointermove", ev => {
+    if (drag < 0 || !geo) return;
+    const [wx, wy] = toWorld(ev);
+    const nx = Math.max(VIEW[0], Math.min(VIEW[2], Math.round(wx)));
+    const ny = Math.max(VIEW[1], Math.min(VIEW[3], Math.round(wy)));
+    const old = pts[drag];
+    if (old[0] === nx && old[1] === ny) return;
+    pts[drag] = [nx, ny];
+    if (mode !== "none") {
+      const check = isConvex(pts, mode === "fixed");
+      if (!check.ok) {
+        pts[drag] = old;
+        setFlash(`Tah na [${nx}, ${ny}] vrácen: ${check.reason}.`);
+      }
+    }
+    render();
+  });
+
+  const endDrag = ev => {
+    if (drag < 0) return;
+    drag = -1;
+    board.classList.remove("dragging");
+    if (board.hasPointerCapture(ev.pointerId)) board.releasePointerCapture(ev.pointerId);
+  };
+  board.addEventListener("pointerup", endDrag);
+  board.addEventListener("pointercancel", endDrag);
+
+  for (const r of document.querySelectorAll('input[name="mode"]')) {
+    r.addEventListener("change", () => { if (r.checked) { mode = r.value; setFlash(""); render(); } });
+  }
+  document.getElementById("preset-edge").addEventListener("click", () => loadPreset("edge"));
+  document.getElementById("preset-triangle").addEventListener("click", () => loadPreset("triangle"));
+
+  // ---------- redraw on resize / theme change ----------
+  const redrawAll = () => { drawGallery(); render(); };
+  const ro = new ResizeObserver(() => redrawAll());
+  ro.observe(document.body);
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawAll);
+  new MutationObserver(redrawAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(redrawAll);
+
+  loadPreset("edge");
+  drawGallery();
+})();
+</script>
+</body>
+</html>

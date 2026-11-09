@@ -211,7 +211,14 @@ public class GeometryUtil {
             long result = pointSide(prev, curr, next);
 
             if (result == 0)
+            {
+                //same direction = ok, going back or zero length edge = not convex
+                long dot = dot(curr.getX() - prev.getX(), curr.getY() - prev.getY(),
+                        next.getX() - curr.getX(), next.getY() - curr.getY());
+                if (dot <= 0)
+                    return false;
                 continue;
+            }
             int direction = Long.signum(result);
 
             if (turnSide == 0) {

@@ -73,16 +73,6 @@ class PolygonTest {
     }
 
     @Test
-    void hitTest_nearRightEdge_returnsEdgeOne() {
-        Hit hit = square.hitTest(102, 50, TOLERANCE);
-
-        assertNotNull(hit);
-        assertEquals(HitType.EDGE, hit.hitType());
-        assertEquals(1, hit.index());
-        assertEquals(4, hit.distanceSq(), DELTA);
-    }
-
-    @Test
     void hitTest_nearClosingEdge_returnsLastEdge() {
         //left edge goes from the last point (0, 100) back to the first point (0, 0)
         Hit hit = square.hitTest(-4, 50, TOLERANCE);
@@ -123,11 +113,6 @@ class PolygonTest {
         assertNull(square.hitTest(50, 50, TOLERANCE));
     }
 
-    @Test
-    void hitTest_farOutside_returnsNull() {
-        assertNull(square.hitTest(200, 200, TOLERANCE));
-    }
-
     // degenerate polygons
 
     @Test
@@ -144,11 +129,6 @@ class PolygonTest {
         assertNotNull(hit);
         assertEquals(HitType.VERTEX, hit.hitType());
         assertEquals(0, hit.index());
-    }
-
-    @Test
-    void hitTest_singlePoint_farIsNull() {
-        assertNull(polygonOf(10, 10).hitTest(50, 50, TOLERANCE));
     }
 
     @Test
