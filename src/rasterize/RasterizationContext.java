@@ -8,11 +8,17 @@ public class RasterizationContext {
     private PolygonRasterizer polygonRasterizer;
     private SeedFillerStackImpl seedFiller;
     private ScanLineFiller scanLineFiller;
-    public RasterizationContext(LineRasterizer lineRasterizer, PolygonRasterizer polygonRasterizer, SeedFillerStackImpl seedFiller, ScanLineFiller scanLineFiller) {
+    private final VertexMarkerRasterizer vertexMarkerRasterizer;
+    public RasterizationContext(LineRasterizer lineRasterizer, PolygonRasterizer polygonRasterizer, SeedFillerStackImpl seedFiller, ScanLineFiller scanLineFiller, VertexMarkerRasterizer vertexMarkerRasterizer) {
         this.lineRasterizer = lineRasterizer;
         this.polygonRasterizer = polygonRasterizer;
         this.seedFiller = seedFiller;
         this.scanLineFiller = scanLineFiller;
+        this.vertexMarkerRasterizer = vertexMarkerRasterizer;
+    }
+
+    public VertexMarkerRasterizer getVertexMarkerRasterizer() {
+        return vertexMarkerRasterizer;
     }
 
     public LineRasterizer getLineRasterizer() {

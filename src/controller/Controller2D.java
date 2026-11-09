@@ -32,7 +32,7 @@ public class Controller2D {
 
     private ToolContext toolContext;
 
-    private final ClipContext clipContext;
+    private ClipContext clipContext;
 
     //Model that contains all rasterizables and allows us to render them all in one cycle in the order they were added
     private final CanvasModel canvasModel;
@@ -51,7 +51,7 @@ public class Controller2D {
         seedFiller = new SeedFillerStackImpl(canvasPanel.getRaster());
         scanLineFiller = new ScanLineFiller(canvasPanel.getRaster());
 
-        rasterizationContext = new RasterizationContext(lineRasterizer, polygonRasterizer, seedFiller, scanLineFiller);
+        rasterizationContext = new RasterizationContext(lineRasterizer, polygonRasterizer, seedFiller, scanLineFiller, new VertexMarkerRasterizer(canvasPanel.getRaster()));
 
         canvasModel = new CanvasModel();
         setActiveTool();
@@ -199,8 +199,13 @@ public class Controller2D {
         });
     }
 
+    //C key: clears the canvas and resets all states - model, clippers and the state of the active tool
     private void clearScene() {
         canvasModel.removeAllRasterizables();
+        clipContext = new ClipContext();
+        window.resetClipCheckBoxes();
+        //new tool and tool context, so no tool keeps a reference to removed objects (unfinished polygon, selection)
+        setActiveTool();
         drawScene();
         Logger.warning("User cleared the scene.");
     }
@@ -217,11 +222,11 @@ public class Controller2D {
                 toDraw.rasterize(rasterizationContext);
         }
 
-        if (activeTool != null)
-            activeTool.drawPreview(rasterizationContext);
-
         if (clipContext.isClipperVisualizationEnabled())
             drawClippers();
+
+        if (activeTool != null)
+            activeTool.drawPreview(rasterizationContext);
 
         canvasPanel.repaint();
     }

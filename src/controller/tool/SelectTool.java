@@ -1,5 +1,6 @@
 package controller.tool;
 
+import edit.VertexMovable;
 import fill.Fillable;
 import rasterize.Rasterizable;
 import rasterize.RasterizationContext;
@@ -38,6 +39,9 @@ public class SelectTool extends EditorTool {
             if (currentHit.target() instanceof Rasterizable) {
                 ((Rasterizable) currentHit.target()).rasterize(context, RasterizationMode.GLOWING);
             }
+            //mark the vertices of the selected object only
+            if (currentHit.target() instanceof VertexMovable movable)
+                context.getVertexMarkerRasterizer().rasterize(movable);
         }
     }
 

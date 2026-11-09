@@ -29,6 +29,7 @@ public class ClipWindow implements Selectable, VertexMovable {
     public int getYMax() { return Math.max(cornerA.getY(), cornerB.getY()); }
 
     //corners CCW on screen: 0 = top-left, 1 = bottom-left, 2 = bottom-right, 3 = top-right
+    @Override
     public List<Point2D> getVertices() {
         int xMin = getXMin();
         int xMax = getXMax();

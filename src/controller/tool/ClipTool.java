@@ -30,14 +30,8 @@ public class ClipTool extends EditorTool {
     public void mousePressed(MouseEvent e) {
         super.mousePressed(e);
         if (e.getButton() == MouseEvent.BUTTON1 && isPointInRaster(e.getPoint())) {
+            //an EDGE hit is kept, the new vertex is inserted on the first drag (see handleVertexInsert)
             currentHit = EditorToolUtil.handleHitTest(getCandidates(), e.getPoint());
-            if (currentHit != null) {
-                if (currentHit.hitType() == HitType.EDGE && currentHit.target() instanceof VertexListEditable vertexList) {
-                    int pIndex = (currentHit.index() + 1) % vertexList.getSize();
-                    vertexList.addPoint(pIndex, currentHit.closestPoint());
-                    currentHit = new Hit(currentHit.target(), HitType.VERTEX, pIndex, currentHit.distanceSq(), currentHit.closestPoint());
-                }
-            }
         } else if (e.getButton() == MouseEvent.BUTTON3 && isPointInRaster(e.getPoint())) {
             currentHit = EditorToolUtil.handleHitTest(getCandidates(), e.getPoint());
             if (currentHit != null) {
@@ -70,8 +64,26 @@ public class ClipTool extends EditorTool {
             handlePointMovement(e);
     }
 
+    //the vertex is inserted at the mouse position, not at the closest point on the edge - that one is rounded to
+    //whole pixels and on a slanted edge it can end up slightly inside and make the clip polygon concave
+    //same as a move: insert, check convexity, revert - so the clip polygon can never get into a non-convex state
+    private void handleVertexInsert(Polygon polygon, Point2D position) {
+        int index = currentHit.index() + 1;
+        polygon.addPoint(index, position);
+        if (!GeometryUtil.isPolygonConvex(polygon.getPointsReadOnly())) {
+            polygon.removePoint(index); //try again on the next drag event
+            return;
+        }
+        currentHit = new Hit(polygon, HitType.VERTEX, index, 0, position);
+    }
+
     private void handlePointMovement(MouseEvent e) {
-        if (currentHit == null || currentHit.hitType() != HitType.VERTEX) return;
+        if (currentHit == null) return;
+        if (currentHit.hitType() == HitType.EDGE && currentHit.target() instanceof Polygon polygon) {
+            handleVertexInsert(polygon, new Point2D(e.getX(), e.getY()));
+            return;
+        }
+        if (currentHit.hitType() != HitType.VERTEX) return;
         if (!(currentHit.target() instanceof VertexMovable movable)) return;
 
         int index = currentHit.index();
@@ -91,6 +103,10 @@ public class ClipTool extends EditorTool {
     @Override
     public void drawPreview(RasterizationContext context) {
         super.drawPreview(context);
+        //only the visible clippers can be edited, so mark only their vertices
+        for (Selectable candidate : getCandidates())
+            if (candidate instanceof VertexMovable movable)
+                context.getVertexMarkerRasterizer().rasterize(movable);
     }
 
     @Override

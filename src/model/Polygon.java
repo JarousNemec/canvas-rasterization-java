@@ -154,4 +154,7 @@ public class Polygon implements Rasterizable, Fillable, Selectable, VertexListEd
     }
 
     public List<Point2D> getPointsReadOnly() { return Collections.unmodifiableList(points); }
+
+    @Override
+    public List<Point2D> getVertices() { return getPointsReadOnly(); }
 }

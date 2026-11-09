@@ -14,6 +14,7 @@ import edit.VertexMovable;
 import utils.GeometryUtil;
 
 import java.awt.*;
+import java.util.List;
 
 public class Line implements Rasterizable, Selectable, VertexMovable, Clippable {
     private final Point2D[] points = new Point2D[2];
@@ -116,6 +117,11 @@ public class Line implements Rasterizable, Selectable, VertexMovable, Clippable 
     public void setNewPointPosition(int index, Point2D newPosition) {
         if(newPosition != null && index < points.length && index >= 0 )
             points[index] = newPosition;
+    }
+
+    @Override
+    public List<Point2D> getVertices() {
+        return List.of(points);
     }
 
     @Override

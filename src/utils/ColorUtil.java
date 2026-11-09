@@ -10,5 +10,6 @@ public class ColorUtil {
     public static final int SELECT_COLOR = Color.CYAN.getRGB();
     public static final int CLIP_WINDOW_COLOR = Color.YELLOW.getRGB();
     public static final int CLIP_POLYGON_COLOR = Color.RED.getRGB();
+    public static final int VERTEX_MARKER_COLOR = Color.GRAY.getRGB();
     public static final int DEFAULT_ICON_COLOR = Color.LIGHT_GRAY.getRGB();
 }

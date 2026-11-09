@@ -1,13 +1,14 @@
 package controller.tool;
 
 import model.CanvasModel;
+import utils.ColorUtil;
 
 import java.util.function.Consumer;
 
 public class ToolContext {
     private final CanvasModel canvasModel;
-    private int currentLineColor = 0xFFFFFF; // Default white
-    private int currentFillColor = 0x000000;// Default black
+    private int currentLineColor = ColorUtil.DEFAULT_LINE_COLOR; // Default white
+    private int currentFillColor = ColorUtil.DEFAULT_FILL_COLOR;// Default black
 
     private int rasterWidth;
     private int rasterHeight;

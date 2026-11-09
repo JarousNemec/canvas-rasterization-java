@@ -193,6 +193,12 @@ public class Window extends JFrame {
         this.clipperVisualizationCheckBox.setEnabled(enable);
     }
 
+    public void resetClipCheckBoxes() {
+        lineClippingCheckBox.setSelected(false);
+        polygonClippingCheckBox.setSelected(false);
+        clipperVisualizationCheckBox.setSelected(false);
+    }
+
     public void setLineColor(int color) {
         this.pickLineColorIcon.setColor(color);
         this.pickLineColorButton.repaint();

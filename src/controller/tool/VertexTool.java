@@ -2,6 +2,8 @@ package controller.tool;
 
 import edit.VertexListEditable;
 import model.Point2D;
+import rasterize.RasterizationContext;
+import select.Selectable;
 import select.Hit;
 import select.HitType;
 import edit.VertexMovable;
@@ -38,6 +40,15 @@ public class VertexTool extends EditorTool {
                 }
             }
         }
+    }
+
+    //every vertex in the scene can be moved, so mark all of them
+    @Override
+    public void drawPreview(RasterizationContext context) {
+        super.drawPreview(context);
+        for (Selectable selectable : toolContext.getCanvasModel().getSelectables())
+            if (selectable instanceof VertexMovable movable)
+                context.getVertexMarkerRasterizer().rasterize(movable);
     }
 
     @Override
