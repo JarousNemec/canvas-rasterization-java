@@ -83,9 +83,7 @@ public class Polygon implements Rasterizable, Fillable, Selectable, VertexListEd
         PolygonRasterizer rasterizer = context.getPolygonRasterizer();
         rasterizer.setColor(this.color);
         rasterizer.rasterize(this, mode);
-
     }
-
 
     @Override
     public Hit hitTest(int x, int y, int tolerance) {

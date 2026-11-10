@@ -4,10 +4,10 @@ import model.Edge;
 import model.Point2D;
 import model.Polygon;
 import raster.Raster;
+import sort.InsertionSort;
 
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.Collections;
 
 public class ScanLineFiller implements Filler {
 
@@ -60,10 +60,10 @@ public class ScanLineFiller implements Filler {
                 }
             }
 
-            //todo: implement custom sorting alg like quick or heap or merge sort or bubble
-            Collections.sort(intersectionsX);
+            InsertionSort.sort(intersectionsX);
 
-            for (int i = 0; i < intersectionsX.size()-1; i = i + 2) {
+            //fill between pairs: 1st-2nd, 3rd-4th, ...
+            for (int i = 0; i < intersectionsX.size() - 1; i = i + 2) {
                 for (int x = intersectionsX.get(i); x < intersectionsX.get(i + 1); x++) {
                     raster.setPixel(x, y, fillColor);
                 }
