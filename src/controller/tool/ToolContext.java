@@ -1,5 +1,6 @@
 package controller.tool;
 
+import fill.SeedFillMode;
 import model.CanvasModel;
 import utils.ColorUtil;
 
@@ -9,6 +10,7 @@ public class ToolContext {
     private final CanvasModel canvasModel;
     private int currentLineColor = ColorUtil.DEFAULT_LINE_COLOR; // Default white
     private int currentFillColor = ColorUtil.DEFAULT_FILL_COLOR;// Default black
+    private SeedFillMode currentSeedFillMode = SeedFillMode.BACKGROUND;
 
     private int rasterWidth;
     private int rasterHeight;
@@ -43,6 +45,14 @@ public class ToolContext {
 
     public void setCurrentFillColor(int currentFillColor) {
         this.currentFillColor = currentFillColor;
+    }
+
+    public SeedFillMode getCurrentSeedFillMode() {
+        return currentSeedFillMode;
+    }
+
+    public void setCurrentSeedFillMode(SeedFillMode currentSeedFillMode) {
+        this.currentSeedFillMode = currentSeedFillMode;
     }
 
     //notify controller that color was changed from tool

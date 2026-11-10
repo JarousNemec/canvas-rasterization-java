@@ -1,6 +1,7 @@
 package view;
 
 import controller.tool.ToolType;
+import fill.SeedFillMode;
 import view.component.ColorIcon;
 
 import javax.swing.*;
@@ -21,16 +22,19 @@ public class Window extends JFrame {
     private Consumer<Boolean> onLineClippingChangedListener;
     private Consumer<Boolean> onPolygonClippingChangedListener;
     private Consumer<Boolean> onClipperVisualizationChangedListener;
+    private Consumer<SeedFillMode> onSeedFillModeChangedListener;
 
     private final JToolBar toolBar = new JToolBar();
     private final JComboBox<String> modeComboBox = new JComboBox<>();
     private final ColorIcon pickLineColorIcon = new ColorIcon(15);
-    private final JButton pickLineColorButton = new JButton("Line color", pickLineColorIcon);
+    private final JButton pickLineColorButton = new JButton(" Line color ", pickLineColorIcon);
     private final ColorIcon pickFillColorIcon = new ColorIcon(15);
-    private final JButton pickFillColorButton = new JButton("Fill color", pickFillColorIcon);
-    private final JCheckBox lineClippingCheckBox = new JCheckBox("Clip lines");
-    private final JCheckBox polygonClippingCheckBox = new JCheckBox("Clip polygons");
-    private final JCheckBox clipperVisualizationCheckBox = new JCheckBox("Show clippers");
+    private final JButton pickFillColorButton = new JButton(" Fill color ", pickFillColorIcon);
+    private final JLabel seedFillModeLabel = new JLabel(" Seed fill mode: ");
+    private final JComboBox<String> seedFillModeComboBox = new JComboBox<>();
+    private final JCheckBox lineClippingCheckBox = new JCheckBox(" Clip lines ");
+    private final JCheckBox polygonClippingCheckBox = new JCheckBox(" Clip polygons ");
+    private final JCheckBox clipperVisualizationCheckBox = new JCheckBox(" Show clippers ");
 
     public Window() {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -49,6 +53,8 @@ public class Window extends JFrame {
 
         initColorChoosers();
 
+        initSeedFillModeComboBox();
+
         initClipCheckBoxes();
 
         //init mode selector label
@@ -61,9 +67,15 @@ public class Window extends JFrame {
         toolBar.add(modeComboBox);
         toolBar.add(pickLineColorButton);
         toolBar.add(pickFillColorButton);
+        toolBar.add(seedFillModeLabel);
+        toolBar.add(seedFillModeComboBox);
         toolBar.add(lineClippingCheckBox);
         toolBar.add(polygonClippingCheckBox);
         toolBar.add(clipperVisualizationCheckBox);
+
+        //set minimal toolbar height by adding rigid area
+        toolBar.add(Box.createRigidArea(new Dimension(0, pickLineColorButton.getPreferredSize().height)));
+
         add(toolBar, BorderLayout.NORTH);
         add(canvasPanel);
 
@@ -103,6 +115,35 @@ public class Window extends JFrame {
         });
     }
 
+    private void initSeedFillModeComboBox() {
+        seedFillModeComboBox.setFocusable(false);
+        seedFillModeComboBox.addItem("Background");
+        seedFillModeComboBox.addItem("Border");
+        seedFillModeComboBox.addItem("Pattern");
+        seedFillModeComboBox.setMaximumSize(seedFillModeComboBox.getPreferredSize());
+        seedFillModeComboBox.addItemListener(e -> {
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                String selected = (String) e.getItem();
+
+                if (onSeedFillModeChangedListener != null) {
+                    switch (selected) {
+                        case "Background":
+                            onSeedFillModeChangedListener.accept(SeedFillMode.BACKGROUND);
+                            break;
+                        case "Border":
+                            onSeedFillModeChangedListener.accept(SeedFillMode.BORDER);
+                            break;
+                        case "Pattern":
+                            onSeedFillModeChangedListener.accept(SeedFillMode.PATTERN);
+                    }
+                }
+            }
+        });
+
+        //visible only for the fill tool
+        setSeedFillModeComboBoxVisible(false);
+    }
+
     private void initClipCheckBoxes() {
         lineClippingCheckBox.setFocusable(false);
         lineClippingCheckBox.addItemListener(e -> {
@@ -122,7 +163,7 @@ public class Window extends JFrame {
                 onClipperVisualizationChangedListener.accept(e.getStateChange() == ItemEvent.SELECTED);
         });
 
-        setClipCheckBoxesEnabled(false);
+        setClipCheckBoxesVisible(false);
     }
 
     private void initUserModeCombobox() {
@@ -187,10 +228,34 @@ public class Window extends JFrame {
         this.onClipperVisualizationChangedListener = listener;
     }
 
-    public void setClipCheckBoxesEnabled(boolean enable) {
-        this.lineClippingCheckBox.setEnabled(enable);
-        this.polygonClippingCheckBox.setEnabled(enable);
-        this.clipperVisualizationCheckBox.setEnabled(enable);
+    public void setOnSeedFillModeChangedListener(Consumer<SeedFillMode> listener) {
+        this.onSeedFillModeChangedListener = listener;
+    }
+
+    public void setSeedFillModeComboBoxVisible(boolean visible) {
+        this.seedFillModeLabel.setVisible(visible);
+        this.seedFillModeComboBox.setVisible(visible);
+        updateToolBarLayout();
+    }
+
+    public void setSeedFillMode(SeedFillMode mode) {
+        switch (mode) {
+            case BACKGROUND:
+                this.seedFillModeComboBox.setSelectedItem("Background");
+                break;
+            case BORDER:
+                this.seedFillModeComboBox.setSelectedItem("Border");
+                break;
+            case PATTERN:
+                this.seedFillModeComboBox.setSelectedItem("Pattern");
+        }
+    }
+
+    public void setClipCheckBoxesVisible(boolean visible) {
+        this.lineClippingCheckBox.setVisible(visible);
+        this.polygonClippingCheckBox.setVisible(visible);
+        this.clipperVisualizationCheckBox.setVisible(visible);
+        updateToolBarLayout();
     }
 
     public void resetClipCheckBoxes() {
@@ -207,13 +272,19 @@ public class Window extends JFrame {
         this.pickFillColorIcon.setColor(color);
         this.pickFillColorButton.repaint();
     }
-    public void setFillColorChooserEnabled(boolean enable) {
-        this.pickFillColorButton.setEnabled(enable);
-        this.repaint();
+    public void setFillColorChooserVisible(boolean visible) {
+        this.pickFillColorButton.setVisible(visible);
+        updateToolBarLayout();
     }
-    public void setLineColorChooserEnabled(boolean enable) {
-        this.pickLineColorButton.setEnabled(enable);
-        this.repaint();
+    public void setLineColorChooserVisible(boolean visible) {
+        this.pickLineColorButton.setVisible(visible);
+        updateToolBarLayout();
+    }
+
+    //hidden components take no space in the toolbar, so the layout must be recalculated after every change
+    private void updateToolBarLayout() {
+        toolBar.revalidate();
+        toolBar.repaint();
     }
 
     public CanvasPanel getPanel() {

@@ -5,6 +5,7 @@ import clip.Clippable;
 import controller.tool.*;
 import fill.ScanLineFiller;
 import rasterize.*;
+import fill.SeedFillMode;
 import fill.SeedFillerStackImpl;
 import model.*;
 import utils.ColorUtil;
@@ -74,6 +75,21 @@ public class Controller2D {
         this.window.setOnLineClippingChangedListener(this::updateLineClipping);
         this.window.setOnPolygonClippingChangedListener(this::updatePolygonClipping);
         this.window.setOnClipperVisualizationChangedListener(this::updateClipperVisualization);
+        this.window.setOnSeedFillModeChangedListener(this::updateSeedFillMode);
+    }
+
+    private void updateSeedFillMode(SeedFillMode mode) {
+        toolContext.setCurrentSeedFillMode(mode);
+        //line color is the border color, so it can be picked only for the border seed fill
+        window.setLineColorChooserVisible(isLineColorChooserVisible());
+    }
+
+    private boolean isLineColorChooserVisible() {
+        return switch (activeToolType) {
+            case LINE, POLYGON, SELECT -> true;
+            case FILL -> toolContext.getCurrentSeedFillMode() == SeedFillMode.BORDER;
+            case VERTEX, CLIP -> false;
+        };
     }
 
     private void updateLineClipping(boolean enabled) {
@@ -111,41 +127,41 @@ public class Controller2D {
     }
 
     private void setActiveTool() {
+        //seed fill mode is a setting of the user, not of the tool, so it is kept when the tool (and its context) changes
+        SeedFillMode seedFillMode = toolContext != null ? toolContext.getCurrentSeedFillMode() : SeedFillMode.BACKGROUND;
         toolContext = new ToolContext(canvasModel, canvasPanel.getRaster().getHeight(), canvasPanel.getRaster().getWidth());
+        toolContext.setCurrentSeedFillMode(seedFillMode);
         initToolContextEvents();
         switch (this.activeToolType) {
             case LINE:
                 activeTool = new LineTool(toolContext);
-                window.setLineColorChooserEnabled(true);
-                window.setFillColorChooserEnabled(false);
+                window.setFillColorChooserVisible(false);
                 break;
             case POLYGON:
                 activeTool = new PolygonTool(toolContext);
-                window.setLineColorChooserEnabled(true);
-                window.setFillColorChooserEnabled(true);
+                window.setFillColorChooserVisible(true);
                 break;
             case FILL:
                 activeTool = new FillerTool(toolContext);
-                window.setLineColorChooserEnabled(false);
-                window.setFillColorChooserEnabled(true);
+                window.setFillColorChooserVisible(true);
                 break;
             case VERTEX:
                 activeTool = new VertexTool(toolContext);
-                window.setLineColorChooserEnabled(false);
-                window.setFillColorChooserEnabled(false);
+                window.setFillColorChooserVisible(false);
                 break;
             case SELECT:
                 activeTool = new SelectTool(toolContext);
-                window.setLineColorChooserEnabled(true);
-                window.setFillColorChooserEnabled(true);
+                window.setFillColorChooserVisible(true);
                 break;
             case CLIP:
                 activeTool = new ClipTool(toolContext, clipContext);
-                window.setLineColorChooserEnabled(false);
-                window.setFillColorChooserEnabled(false);
+                window.setFillColorChooserVisible(false);
                 break;
         }
-        window.setClipCheckBoxesEnabled(this.activeToolType == ToolType.CLIP);
+        window.setLineColorChooserVisible(isLineColorChooserVisible());
+        window.setClipCheckBoxesVisible(this.activeToolType == ToolType.CLIP);
+        window.setSeedFillModeComboBoxVisible(this.activeToolType == ToolType.FILL);
+        window.setSeedFillMode(toolContext.getCurrentSeedFillMode());
         window.setLineColor(toolContext.getCurrentLineColor());
         window.setFillColor(toolContext.getCurrentFillColor());
     }

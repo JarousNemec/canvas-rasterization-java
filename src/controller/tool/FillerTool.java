@@ -22,7 +22,12 @@ public class FillerTool extends EditorTool {
     }
 
     private void handleSeedFillerAdd(MouseEvent e) {
-        var seedFill = new SeedFill(new Point2D(e.getX(), e.getY()), toolContext.getCurrentFillColor());
+        //border color = current line color, used only in BORDER mode
+        var seedFill = new SeedFill(
+                new Point2D(e.getX(), e.getY()),
+                toolContext.getCurrentFillColor(),
+                toolContext.getCurrentSeedFillMode(),
+                toolContext.getCurrentLineColor());
         toolContext.getCanvasModel().addRasterizable(seedFill);
     }
 }
