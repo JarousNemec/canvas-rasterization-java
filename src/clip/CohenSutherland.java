@@ -3,6 +3,7 @@ package clip;
 import model.ClipWindow;
 import model.Point2D;
 import utils.GeometryUtil;
+import utils.Vec2;
 
 public class CohenSutherland {
     private CohenSutherland() {
@@ -14,7 +15,11 @@ public class CohenSutherland {
     private static final byte RIGHT = 0b0100;
     private static final byte LEFT = 0b1000;
 
-    public static Point2D[] clip(Point2D a, Point2D b, ClipWindow clipWindow) {
+    public static Point2D[] clip(Point2D pointA, Point2D pointB, ClipWindow clipWindow) {
+        //double points for calculations, rounding the intersections in between would move the line
+        //and the next intersection would be calculated on a different line (error up to tens of pixels)
+        Vec2 a = Vec2.of(pointA);
+        Vec2 b = Vec2.of(pointB);
         byte aCode = getPointCode(a, clipWindow);
         byte bCode = getPointCode(b, clipWindow);
 
@@ -24,7 +29,8 @@ public class CohenSutherland {
         // as a result we get the intersection of the line right at the border of the clip window
         while (true) {
             if ((aCode | bCode) == 0) {
-                return new Point2D[]{a, b};
+                //round only at the very end
+                return new Point2D[]{a.toPoint2D(), b.toPoint2D()};
             }
             if ((aCode & bCode) != 0) {
                 return new Point2D[]{};
@@ -40,7 +46,7 @@ public class CohenSutherland {
         }
     }
 
-    private static Point2D intersect(Point2D a, Point2D b, byte code, ClipWindow clipWindow) {
+    private static Vec2 intersect(Vec2 a, Vec2 b, byte code, ClipWindow clipWindow) {
         int xMax = clipWindow.getXMax();
         int yMax = clipWindow.getYMax();
         int xMin = clipWindow.getXMin();
@@ -48,19 +54,27 @@ public class CohenSutherland {
 
         //lineIntersection works with infinite lines, so any two points on the edge line are enough
         // code & DIRECTION is a basic AND operation, so we get a number that isn't 0 when both codes have any common bits
-        if ((code & LEFT) != 0)
-            return GeometryUtil.lineIntersection(a, b, new Point2D(xMin, 0), new Point2D(xMin, 1));
-        if ((code & RIGHT) != 0)
-            return GeometryUtil.lineIntersection(a, b, new Point2D(xMax, 0), new Point2D(xMax, 1));
-        if ((code & TOP) != 0)
-            return GeometryUtil.lineIntersection(a, b, new Point2D(0, yMin), new Point2D(1, yMin));
-        return GeometryUtil.lineIntersection(a, b, new Point2D(0, yMax), new Point2D(1, yMax));
-
+        //the intersection lies exactly on the clip edge, so that coordinate is set directly,
+        //otherwise double error (e.g. 242.9999999) could leave the point just outside the window
+        if ((code & LEFT) != 0) {
+            Vec2 p = GeometryUtil.lineIntersection(a, b, new Vec2(xMin, 0), new Vec2(xMin, 1));
+            return new Vec2(xMin, p.y());
+        }
+        if ((code & RIGHT) != 0) {
+            Vec2 p = GeometryUtil.lineIntersection(a, b, new Vec2(xMax, 0), new Vec2(xMax, 1));
+            return new Vec2(xMax, p.y());
+        }
+        if ((code & TOP) != 0) {
+            Vec2 p = GeometryUtil.lineIntersection(a, b, new Vec2(0, yMin), new Vec2(1, yMin));
+            return new Vec2(p.x(), yMin);
+        }
+        Vec2 p = GeometryUtil.lineIntersection(a, b, new Vec2(0, yMax), new Vec2(1, yMax));
+        return new Vec2(p.x(), yMax);
     }
 
-    private static byte getPointCode(Point2D p, ClipWindow clipWindow) {
-        int x = p.getX();
-        int y = p.getY();
+    private static byte getPointCode(Vec2 p, ClipWindow clipWindow) {
+        double x = p.x();
+        double y = p.y();
         int xMax = clipWindow.getXMax();
         int yMax = clipWindow.getYMax();
         int xMin = clipWindow.getXMin();

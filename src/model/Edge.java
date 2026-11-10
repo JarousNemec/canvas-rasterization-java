@@ -63,10 +63,8 @@ public class Edge {
     }
 
     public int getIntersectionX(int y) {
-        //in what portion of the edge is the y position
-         float t = (float) (y - y1) / (y2 - y1);
-
-         //apply that portion to the x portion equation of the line
-         return Math.round(x1 + t * (x2 - x1));
+        //first calculate product and divide as last operation
+        //based on lerp prescription
+        return Math.round(x1 + (float) ((y - y1) * (x2 - x1)) / (y2 - y1));
     }
 }
