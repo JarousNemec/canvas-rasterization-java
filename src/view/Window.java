@@ -5,8 +5,11 @@ import fill.SeedFillMode;
 import view.component.ColorIcon;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ItemEvent;
+import java.io.File;
+import java.nio.file.Path;
 import java.util.function.Consumer;
 
 public class Window extends JFrame {
@@ -23,6 +26,11 @@ public class Window extends JFrame {
     private Consumer<Boolean> onPolygonClippingChangedListener;
     private Consumer<Boolean> onClipperVisualizationChangedListener;
     private Consumer<SeedFillMode> onSeedFillModeChangedListener;
+    private Consumer<Path> onOpenSceneListener;
+    private Consumer<Path> onSaveSceneListener;
+    private Runnable onLoadDemoSceneListener;
+
+    private static final String SCENE_FILE_EXTENSION = "json";
 
     private final JToolBar toolBar = new JToolBar();
     private final JComboBox<String> modeComboBox = new JComboBox<>();
@@ -45,6 +53,8 @@ public class Window extends JFrame {
 
     private void initializeComponents() {
         setLayout(new BorderLayout());
+
+        initFileMenu();
 
         //init toolbar
         toolBar.setFloatable(false);
@@ -85,6 +95,74 @@ public class Window extends JFrame {
         //set focus on the drawing panel
         canvasPanel.setFocusable(true);
         canvasPanel.grabFocus();
+    }
+
+    private void initFileMenu() {
+        JMenuBar menuBar = new JMenuBar();
+        JMenu fileMenu = new JMenu("File");
+
+        JMenuItem openSceneItem = new JMenuItem("Open scene...");
+        openSceneItem.addActionListener(_ -> {
+            Path path = chooseSceneFileToOpen();
+            if (path != null && onOpenSceneListener != null)
+                onOpenSceneListener.accept(path);
+            canvasPanel.grabFocus();
+        });
+
+        JMenuItem saveSceneItem = new JMenuItem("Save scene...");
+        saveSceneItem.addActionListener(_ -> {
+            Path path = chooseSceneFileToSave();
+            if (path != null && onSaveSceneListener != null)
+                onSaveSceneListener.accept(path);
+            canvasPanel.grabFocus();
+        });
+
+        JMenuItem loadDemoSceneItem = new JMenuItem("Load demo scene");
+        loadDemoSceneItem.addActionListener(_ -> {
+            if (onLoadDemoSceneListener != null)
+                onLoadDemoSceneListener.run();
+            canvasPanel.grabFocus();
+        });
+
+        fileMenu.add(openSceneItem);
+        fileMenu.add(saveSceneItem);
+        fileMenu.addSeparator();
+        fileMenu.add(loadDemoSceneItem);
+        menuBar.add(fileMenu);
+        setJMenuBar(menuBar);
+    }
+
+    private JFileChooser createSceneFileChooser() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Scene (*.json)", SCENE_FILE_EXTENSION));
+        return fileChooser;
+    }
+
+    //returns null when the user cancels the dialog
+    private Path chooseSceneFileToOpen() {
+        JFileChooser fileChooser = createSceneFileChooser();
+        if (fileChooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION)
+            return null;
+        return fileChooser.getSelectedFile().toPath();
+    }
+
+    //returns null when the user cancels the dialog or doesn't want to overwrite the existing file
+    private Path chooseSceneFileToSave() {
+        JFileChooser fileChooser = createSceneFileChooser();
+        if (fileChooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION)
+            return null;
+
+        File file = fileChooser.getSelectedFile();
+        //user usually writes only the name, so the extension is added
+        if (!file.getName().toLowerCase().endsWith("." + SCENE_FILE_EXTENSION))
+            file = new File(file.getParentFile(), file.getName() + "." + SCENE_FILE_EXTENSION);
+
+        if (file.exists()) {
+            int result = JOptionPane.showConfirmDialog(this, "File " + file.getName() + " already exists. Overwrite it?", "Save scene", JOptionPane.YES_NO_OPTION);
+            if (result != JOptionPane.YES_OPTION)
+                return null;
+        }
+        return file.toPath();
     }
 
     private void initColorChoosers() {
@@ -232,6 +310,22 @@ public class Window extends JFrame {
         this.onSeedFillModeChangedListener = listener;
     }
 
+    public void setOnOpenSceneListener(Consumer<Path> listener) {
+        this.onOpenSceneListener = listener;
+    }
+
+    public void setOnSaveSceneListener(Consumer<Path> listener) {
+        this.onSaveSceneListener = listener;
+    }
+
+    public void setOnLoadDemoSceneListener(Runnable listener) {
+        this.onLoadDemoSceneListener = listener;
+    }
+
+    public void showError(String message) {
+        JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
     public void setSeedFillModeComboBoxVisible(boolean visible) {
         this.seedFillModeLabel.setVisible(visible);
         this.seedFillModeComboBox.setVisible(visible);
@@ -262,6 +356,13 @@ public class Window extends JFrame {
         lineClippingCheckBox.setSelected(false);
         polygonClippingCheckBox.setSelected(false);
         clipperVisualizationCheckBox.setSelected(false);
+    }
+
+    //used after loading a scene, check boxes fire their listeners, so the clip context gets the same values
+    public void setClipCheckBoxes(boolean lineClipping, boolean polygonClipping, boolean clipperVisualization) {
+        lineClippingCheckBox.setSelected(lineClipping);
+        polygonClippingCheckBox.setSelected(polygonClipping);
+        clipperVisualizationCheckBox.setSelected(clipperVisualization);
     }
 
     public void setLineColor(int color) {

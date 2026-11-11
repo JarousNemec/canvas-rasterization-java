@@ -8,6 +8,9 @@ import rasterize.*;
 import fill.SeedFillMode;
 import fill.SeedFillerStackImpl;
 import model.*;
+import persistence.SceneFileStorage;
+import persistence.SceneFormatException;
+import persistence.SceneSnapshot;
 import utils.ColorUtil;
 import utils.Logger;
 import view.CanvasPanel;
@@ -15,6 +18,9 @@ import view.Window;
 
 import javax.swing.*;
 import java.awt.event.*;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.ArrayList;
 
 public class Controller2D {
     private final Window window;
@@ -37,6 +43,8 @@ public class Controller2D {
 
     //Model that contains all rasterizables and allows us to render them all in one cycle in the order they were added
     private final CanvasModel canvasModel;
+
+    private final SceneFileStorage sceneFileStorage = new SceneFileStorage();
 
     private ToolType activeToolType = ToolType.LINE;
     private EditorTool activeTool = null;
@@ -76,6 +84,9 @@ public class Controller2D {
         this.window.setOnPolygonClippingChangedListener(this::updatePolygonClipping);
         this.window.setOnClipperVisualizationChangedListener(this::updateClipperVisualization);
         this.window.setOnSeedFillModeChangedListener(this::updateSeedFillMode);
+        this.window.setOnOpenSceneListener(this::openScene);
+        this.window.setOnSaveSceneListener(this::saveScene);
+        this.window.setOnLoadDemoSceneListener(this::loadDemoScene);
     }
 
     private void updateSeedFillMode(SeedFillMode mode) {
@@ -224,6 +235,68 @@ public class Controller2D {
         setActiveTool();
         drawScene();
         Logger.warning("User cleared the scene.");
+    }
+
+    private void saveScene(Path path) {
+        SceneSnapshot snapshot = new SceneSnapshot(
+                new ArrayList<>(canvasModel.getRasterizables()),
+                clipContext.getClipWindow(),
+                clipContext.getClipPolygon(),
+                clipContext.isLineClippingEnabled(),
+                clipContext.isPolygonClippingEnabled(),
+                clipContext.isClipperVisualizationEnabled()
+        );
+        try {
+            sceneFileStorage.save(path, snapshot);
+            Logger.info("Scene saved to: " + path);
+        } catch (IOException e) {
+            Logger.error("Saving scene failed: " + e.getMessage());
+            window.showError("Saving scene failed: " + e.getMessage());
+        }
+    }
+
+    private void openScene(Path path) {
+        try {
+            applySceneSnapshot(sceneFileStorage.load(path));
+            Logger.info("Scene loaded from: " + path);
+        } catch (IOException | SceneFormatException e) {
+            Logger.error("Loading scene failed: " + e.getMessage());
+            window.showError("Loading scene failed: " + e.getMessage());
+        }
+    }
+
+    private void loadDemoScene() {
+        try {
+            applySceneSnapshot(sceneFileStorage.loadDemo());
+            Logger.info("Demo scene loaded.");
+        } catch (IOException | SceneFormatException e) {
+            Logger.error("Loading demo scene failed: " + e.getMessage());
+            window.showError("Loading demo scene failed: " + e.getMessage());
+        }
+    }
+
+    //replaces the whole scene, the same way as clearScene - model, clippers and the active tool are reset
+    //snapshot is already complete here, so a broken file never leaves the canvas half loaded
+    private void applySceneSnapshot(SceneSnapshot snapshot) {
+        canvasModel.removeAllRasterizables();
+        for (var rasterizable : snapshot.rasterizables()) {
+            canvasModel.addRasterizable(rasterizable);
+        }
+
+        //missing clipper in the file means the default one
+        clipContext = new ClipContext();
+        if (snapshot.clipWindow() != null)
+            clipContext.setClipWindow(snapshot.clipWindow());
+        if (snapshot.clipPolygon() != null)
+            clipContext.setClipPolygon(snapshot.clipPolygon());
+        clipContext.setLineClippingEnabled(snapshot.lineClippingEnabled());
+        clipContext.setPolygonClippingEnabled(snapshot.polygonClippingEnabled());
+        clipContext.setClipperVisualizationEnabled(snapshot.clipperVisualizationEnabled());
+        window.setClipCheckBoxes(snapshot.lineClippingEnabled(), snapshot.polygonClippingEnabled(), snapshot.clipperVisualizationEnabled());
+
+        //new tool and tool context, so no tool keeps a reference to the objects of the previous scene
+        setActiveTool();
+        drawScene();
     }
 
     private void drawScene() {
