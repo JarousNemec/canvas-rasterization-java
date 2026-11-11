@@ -182,6 +182,18 @@ class SceneJsonSerializerTest {
         assertFalse(json.contains("seed"), json);
     }
 
+    @Test
+    void serialize_colors_areSavedAsHex() {
+        Polygon polygon = polygonOf(0, 0, 100, 0, 100, 100);
+        polygon.setColor(0xFFFF8000);
+        polygon.setFillColor(0xFF1E88E5);
+
+        String json = serializer.serialize(snapshotOf(polygon));
+
+        assertTrue(json.contains("\"#FFFF8000\""), json);
+        assertTrue(json.contains("\"#FF1E88E5\""), json);
+    }
+
     // invalid files
 
     @Test
@@ -203,7 +215,7 @@ class SceneJsonSerializerTest {
 
     @Test
     void deserialize_unknownType_throws() {
-        String json = sceneJsonWith("{ \"type\": \"circle\", \"color\": -1 }");
+        String json = sceneJsonWith("{ \"type\": \"circle\", \"color\": \"#FFFFFFFF\" }");
 
         assertThrows(SceneFormatException.class, () -> serializer.deserialize(json));
     }
@@ -218,20 +230,20 @@ class SceneJsonSerializerTest {
 
     @Test
     void deserialize_lineWithOnePoint_throws() {
-        String json = sceneJsonWith("{ \"type\": \"line\", \"color\": -1, \"points\": [{\"x\": 0, \"y\": 0}] }");
+        String json = sceneJsonWith("{ \"type\": \"line\", \"color\": \"#FFFFFFFF\", \"points\": [{\"x\": 0, \"y\": 0}] }");
 
         assertThrows(SceneFormatException.class, () -> serializer.deserialize(json));
     }
 
     @Test
     void deserialize_pointWithText_throws() {
-        String json = sceneJsonWith("{ \"type\": \"line\", \"color\": -1, \"points\": [{\"x\": \"a\", \"y\": 0}, {\"x\": 10, \"y\": 10}] }");
+        String json = sceneJsonWith("{ \"type\": \"line\", \"color\": \"#FFFFFFFF\", \"points\": [{\"x\": \"a\", \"y\": 0}, {\"x\": 10, \"y\": 10}] }");
 
         assertThrows(SceneFormatException.class, () -> serializer.deserialize(json));
     }
 
     @Test
-    void deserialize_colorAsText_throws() {
+    void deserialize_invalidColor_throws() {
         String json = sceneJsonWith("{ \"type\": \"line\", \"color\": \"white\", \"points\": [{\"x\": 0, \"y\": 0}, {\"x\": 10, \"y\": 10}] }");
 
         assertThrows(SceneFormatException.class, () -> serializer.deserialize(json));
@@ -239,7 +251,7 @@ class SceneJsonSerializerTest {
 
     @Test
     void deserialize_unknownSeedFillMode_throws() {
-        String json = sceneJsonWith("{ \"type\": \"seedFill\", \"color\": -1, \"mode\": \"FLOOD\", \"borderColor\": -1, \"seed\": {\"x\": 1, \"y\": 1} }");
+        String json = sceneJsonWith("{ \"type\": \"seedFill\", \"color\": \"#FFFFFFFF\", \"mode\": \"FLOOD\", \"borderColor\": \"#FFFFFFFF\", \"seed\": {\"x\": 1, \"y\": 1} }");
 
         assertThrows(SceneFormatException.class, () -> serializer.deserialize(json));
     }

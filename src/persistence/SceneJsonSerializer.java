@@ -9,6 +9,7 @@ import model.Point2D;
 import model.Polygon;
 import model.SeedFill;
 import rasterize.Rasterizable;
+import utils.ColorUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,8 +31,9 @@ public class SceneJsonSerializer {
     }
 
     //one record for all object types, fields that the type doesn't use are null (and are not written to the file)
-    record ObjectData(String type, Integer color, Integer fillColor, Boolean filled,
-                      SeedFillMode mode, Integer borderColor, List<Point2D> points, Point2D seed) {
+    //colors are saved as hex "#AARRGGBB", so they can be read and edited by hand
+    record ObjectData(String type, String color, String fillColor, Boolean filled,
+                      SeedFillMode mode, String borderColor, List<Point2D> points, Point2D seed) {
     }
 
     //window is saved as two opposite corners [top left, bottom right]
@@ -96,23 +98,24 @@ public class SceneJsonSerializer {
 
     private ObjectData toData(Rasterizable rasterizable) {
         return switch (rasterizable) {
-            case Line line -> new ObjectData(TYPE_LINE, line.getColor(), null, null,
+            case Line line -> new ObjectData(TYPE_LINE, ColorUtil.integerToHex(line.getColor()), null, null,
                     null, null, line.getVertices(), null);
             case Polygon polygon ->
-                    new ObjectData(TYPE_POLYGON, polygon.getColor(), polygon.getFillColor(), polygon.isFilled(),
+                    new ObjectData(TYPE_POLYGON, ColorUtil.integerToHex(polygon.getColor()), ColorUtil.integerToHex(polygon.getFillColor()), polygon.isFilled(),
                             null, null, polygon.getPointsReadOnly(), null);
-            case SeedFill seedFill -> new ObjectData(TYPE_SEED_FILL, seedFill.getColor(), null, null,
-                    seedFill.getMode(), seedFill.getBorderColor(), null, seedFill.getSeed());
+            case SeedFill seedFill ->
+                    new ObjectData(TYPE_SEED_FILL, ColorUtil.integerToHex(seedFill.getColor()), null, null,
+                            seedFill.getMode(), ColorUtil.integerToHex(seedFill.getBorderColor()), null, seedFill.getSeed());
             default -> throw new IllegalArgumentException("Can't save " + rasterizable.getClass().getSimpleName());
         };
     }
 
-    //missing Integer / Boolean values throw NullPointerException when unboxed, so they end up as SceneFormatException
+    //missing values are null - hexToInteger and unboxing of Boolean throw NullPointerException, so they end up as SceneFormatException
     private Rasterizable fromData(ObjectData data) throws SceneFormatException {
         switch (data.type()) {
             case TYPE_LINE: {
                 Line line = new Line(data.points().get(0), data.points().get(1));
-                line.setColor(data.color());
+                line.setColor(ColorUtil.hexToInteger(data.color()));
                 return line;
             }
             case TYPE_POLYGON: {
@@ -121,16 +124,16 @@ public class SceneJsonSerializer {
                     throw new SceneFormatException("Polygon must have at least 1 point");
                 //new ArrayList, because Polygon doesn't copy the list and its editing writes into it
                 Polygon polygon = new Polygon(new ArrayList<>(data.points()));
-                polygon.setColor(data.color());
-                polygon.setFillColor(data.fillColor());
+                polygon.setColor(ColorUtil.hexToInteger(data.color()));
+                polygon.setFillColor(ColorUtil.hexToInteger(data.fillColor()));
                 if (data.filled())
                     polygon.enableFill();
                 return polygon;
             }
             case TYPE_SEED_FILL: {
                 //Gson returns null for unknown enum value, so mode must be checked
-                return new SeedFill(Objects.requireNonNull(data.seed(), "seed"), data.color(),
-                        Objects.requireNonNull(data.mode(), "mode"), data.borderColor());
+                return new SeedFill(Objects.requireNonNull(data.seed(), "seed"), ColorUtil.hexToInteger(data.color()),
+                        Objects.requireNonNull(data.mode(), "mode"), ColorUtil.hexToInteger(data.borderColor()));
             }
             default:
                 throw new SceneFormatException("Unknown object type: " + data.type());
