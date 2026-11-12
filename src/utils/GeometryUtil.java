@@ -115,11 +115,11 @@ public class GeometryUtil {
         int adx = Math.abs(dx);
         int ady = Math.abs(dy);
 
-        //attach to Y axis
+        //attach to X axis
         if (ady <= adx * SNAP_THRESHOLD)
             return new Point2D(endX, startY);
 
-        //attach to X axis
+        //attach to Y axis
         if (adx <= ady * SNAP_THRESHOLD)
             return new Point2D(startX, endY);
 
