@@ -13,6 +13,7 @@ import java.awt.event.MouseEvent;
 public class LineTool extends EditorTool {
 
     private Line currentLine = new Line();
+    private boolean isLineStarted = false;
 
     public LineTool(ToolContext toolContext) {
         super(toolContext);
@@ -31,17 +32,18 @@ public class LineTool extends EditorTool {
     @Override
     public void mouseReleased(MouseEvent e) {
         super.mouseReleased(e);
-        if (e.getButton() == MouseEvent.BUTTON1) {
-            if (isPointInRaster(e.getPoint())) {
-                handleLineAdd(e);
-            }
+        //released out of the canvas is fine too, the end is moved to the border (see getLineEnd)
+        //but the line must have been started by a press in the canvas
+        if (e.getButton() == MouseEvent.BUTTON1 && isLineStarted) {
+            handleLineAdd(e);
+            isLineStarted = false;
         }
     }
 
     @Override
     public void drawPreview(RasterizationContext context) {
         super.drawPreview(context);
-        if (isBtn1Pressed)
+        if (isBtn1Pressed && isLineStarted)
             if (currentLine != null) {
                 int x = (int) this.mousePosition.getX();
                 int y = (int) this.mousePosition.getY();
@@ -55,6 +57,7 @@ public class LineTool extends EditorTool {
     private void handleNewLine(MouseEvent e) {
         currentLine.setStart(new Point2D(e.getX(), e.getY()));
         currentLine.setEnd(new Point2D(e.getX(), e.getY()));
+        isLineStarted = true;
     }
 
     private void handleLineAdd(MouseEvent e) {
@@ -85,10 +88,12 @@ public class LineTool extends EditorTool {
         }
     }
 
+    //snapped first and then moved to the canvas border along the line, so the snapped direction is kept
     private Point2D getLineEnd(int x, int y) {
         Point2D start = currentLine.getStart();
+        Point2D end = new Point2D(x, y);
         if (isShiftPressed)
-            return GeometryUtil.snapToAxisOrDiagonal(start.getX(), start.getY(), x, y);
-        return new Point2D(x, y);
+            end = GeometryUtil.snapToAxisOrDiagonal(start.getX(), start.getY(), x, y);
+        return getPointInCanvas(start, end.getX(), end.getY());
     }
 }

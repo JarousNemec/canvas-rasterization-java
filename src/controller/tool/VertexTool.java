@@ -1,7 +1,6 @@
 package controller.tool;
 
 import edit.VertexListEditable;
-import model.Point2D;
 import rasterize.RasterizationContext;
 import select.Selectable;
 import select.Hit;
@@ -54,14 +53,15 @@ public class VertexTool extends EditorTool {
     @Override
     public void mouseDragged(MouseEvent e) {
         super.mouseDragged(e);
-        if (isPointInRaster(e.getPoint()) && isBtn1Pressed)
+        if (isBtn1Pressed)
             handlePointMovement(e);
     }
 
+    //dragged out of the canvas -> the vertex slides along the border
     private void handlePointMovement(MouseEvent e) {
         if (currentHit != null) {
             if (currentHit.target() instanceof VertexMovable && currentHit.hitType() == HitType.VERTEX) {
-                ((VertexMovable) currentHit.target()).setNewPointPosition(currentHit.index(), new Point2D(e.getX(), e.getY()));
+                ((VertexMovable) currentHit.target()).setNewPointPosition(currentHit.index(), getPointInCanvas(e.getX(), e.getY()));
             }
         }
     }

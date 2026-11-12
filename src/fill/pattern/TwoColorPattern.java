@@ -1,4 +1,4 @@
-package fill;
+package fill.pattern;
 
 //common part of the patterns made of two alternating colors
 //subclass only decides by its formula which of the two colors belongs to the pixel
@@ -31,10 +31,12 @@ public abstract class TwoColorPattern implements PatternFill {
         return Math.floorMod(Math.floorDiv(coordinate, size), 2) == 0;
     }
 
+    @Override
     public int getPrimaryColor() {
         return primaryColor;
     }
 
+    @Override
     public int getSecondaryColor() {
         return secondaryColor;
     }

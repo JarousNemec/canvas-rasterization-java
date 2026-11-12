@@ -1,6 +1,10 @@
 package persistence;
 
-import fill.SeedFillMode;
+import fill.SeedFillStopMode;
+import fill.pattern.FillerMode;
+import fill.pattern.PatternFill;
+import fill.pattern.SolidPattern;
+import fill.pattern.StripesPattern;
 import model.ClipWindow;
 import model.Line;
 import model.Point2D;
@@ -82,7 +86,7 @@ class SceneJsonSerializerTest {
     void roundTrip_polygon_keepsPointsColorsAndFill() throws SceneFormatException {
         Polygon polygon = polygonOf(0, 0, 100, 0, 100, 100, 0, 100);
         polygon.setColor(0xFFFF0000);
-        polygon.setFillColor(0xFF0000FF);
+        polygon.setFillPattern(new SolidPattern(0xFF0000FF));
         polygon.enableFill();
 
         SceneSnapshot loaded = roundTrip(snapshotOf(polygon));
@@ -90,8 +94,26 @@ class SceneJsonSerializerTest {
         Polygon loadedPolygon = assertInstanceOf(Polygon.class, loaded.rasterizables().getFirst());
         assertPointsEqual(polygon.getPointsReadOnly(), loadedPolygon.getPointsReadOnly());
         assertEquals(0xFFFF0000, loadedPolygon.getColor());
-        assertEquals(0xFF0000FF, loadedPolygon.getFillColor());
+        assertEquals(FillerMode.SOLID, loadedPolygon.getFillPattern().getFillerMode());
+        assertEquals(0xFF0000FF, loadedPolygon.getFillPattern().getPrimaryColor());
         assertTrue(loadedPolygon.isFilled());
+    }
+
+    @Test
+    void roundTrip_polygon_keepsAllPatterns() throws SceneFormatException {
+        for (FillerMode fillerMode : FillerMode.values()) {
+            Polygon polygon = polygonOf(0, 0, 100, 0, 100, 100);
+            polygon.setFillPattern(fillerMode.createPattern(0xFF0000FF, 0xFFFFC107));
+
+            SceneSnapshot loaded = roundTrip(snapshotOf(polygon));
+
+            PatternFill pattern = ((Polygon) loaded.rasterizables().getFirst()).getFillPattern();
+            assertEquals(fillerMode, pattern.getFillerMode());
+            assertEquals(0xFF0000FF, pattern.getPrimaryColor());
+            //solid has only one color
+            int expectedSecondary = fillerMode == FillerMode.SOLID ? 0xFF0000FF : 0xFFFFC107;
+            assertEquals(expectedSecondary, pattern.getSecondaryColor());
+        }
     }
 
     @Test
@@ -118,8 +140,8 @@ class SceneJsonSerializerTest {
 
     @Test
     void roundTrip_seedFill_keepsAllModes() throws SceneFormatException {
-        for (SeedFillMode mode : SeedFillMode.values()) {
-            SeedFill seedFill = new SeedFill(new Point2D(140, 150), 0xFF0000FF, mode, 0xFFFFFFFF);
+        for (SeedFillStopMode mode : SeedFillStopMode.values()) {
+            SeedFill seedFill = new SeedFill(new Point2D(140, 150), new SolidPattern(0xFF0000FF), mode, 0xFFFFFFFF);
 
             SceneSnapshot loaded = roundTrip(snapshotOf(seedFill));
 
@@ -133,11 +155,42 @@ class SceneJsonSerializerTest {
     }
 
     @Test
+    void roundTrip_seedFill_keepsPattern() throws SceneFormatException {
+        SeedFill seedFill = new SeedFill(new Point2D(140, 150), new StripesPattern(8, 0xFF0000FF, 0xFFFFC107),
+                SeedFillStopMode.BORDER, 0xFFFFFFFF);
+
+        SceneSnapshot loaded = roundTrip(snapshotOf(seedFill));
+
+        PatternFill pattern = ((SeedFill) loaded.rasterizables().getFirst()).getFillPattern();
+        assertEquals(FillerMode.STRIPES, pattern.getFillerMode());
+        assertEquals(0xFF0000FF, pattern.getPrimaryColor());
+        assertEquals(0xFFFFC107, pattern.getSecondaryColor());
+    }
+
+    @Test
+    void deserialize_withoutFillerMode_isSolid() throws SceneFormatException {
+        //files saved before patterns existed have no fillerMode
+        String json = sceneJsonWith("{ \"type\": \"seedFill\", \"color\": \"#FF0000FF\", \"mode\": \"BORDER\", \"borderColor\": \"#FFFFFFFF\", \"seed\": {\"x\": 1, \"y\": 1} }");
+
+        SeedFill loaded = (SeedFill) serializer.deserialize(json).rasterizables().getFirst();
+
+        assertEquals(FillerMode.SOLID, loaded.getFillPattern().getFillerMode());
+        assertEquals(0xFF0000FF, loaded.getFillPattern().getPrimaryColor());
+    }
+
+    @Test
+    void deserialize_patternWithoutPatternColor_throws() {
+        String json = sceneJsonWith("{ \"type\": \"seedFill\", \"color\": \"#FF0000FF\", \"fillerMode\": \"STRIPES\", \"mode\": \"BORDER\", \"borderColor\": \"#FFFFFFFF\", \"seed\": {\"x\": 1, \"y\": 1} }");
+
+        assertThrows(SceneFormatException.class, () -> serializer.deserialize(json));
+    }
+
+    @Test
     void roundTrip_keepsOrderOfRasterizables() throws SceneFormatException {
         //order matters - seed fill fills what is drawn before it
         SceneSnapshot loaded = roundTrip(snapshotOf(
                 polygonOf(0, 0, 100, 0, 100, 100),
-                new SeedFill(new Point2D(60, 30), 0xFF0000FF, SeedFillMode.BACKGROUND, 0xFFFFFFFF),
+                new SeedFill(new Point2D(60, 30), new SolidPattern(0xFF0000FF), SeedFillStopMode.BACKGROUND, 0xFFFFFFFF),
                 new Line(new Point2D(0, 0), new Point2D(10, 10))
         ));
 
@@ -186,7 +239,7 @@ class SceneJsonSerializerTest {
     void serialize_colors_areSavedAsHex() {
         Polygon polygon = polygonOf(0, 0, 100, 0, 100, 100);
         polygon.setColor(0xFFFF8000);
-        polygon.setFillColor(0xFF1E88E5);
+        polygon.setFillPattern(new SolidPattern(0xFF1E88E5));
 
         String json = serializer.serialize(snapshotOf(polygon));
 

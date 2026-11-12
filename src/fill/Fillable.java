@@ -1,8 +1,10 @@
 package fill;
 
+import fill.pattern.PatternFill;
+
 public interface Fillable {
-    void setFillColor(int color);
-    int getFillColor();
+    void setFillPattern(PatternFill pattern);
+    PatternFill getFillPattern();
     void enableFill();
     void disableFill();
     boolean isFilled();

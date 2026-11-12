@@ -1,4 +1,4 @@
-package fill;
+package fill.pattern;
 
 //diagonal stripes "/", stripe and the gap have the same width stripeWidth px (measured horizontally)
 //same as vertical stripes, but every row down is shifted by one pixel - so x + y is used instead of x
@@ -13,6 +13,11 @@ public class DiagonalStripesPattern extends TwoColorPattern {
     @Override
     protected boolean isPrimary(int x, int y) {
         return isEvenCell(x + y, stripeWidth);
+    }
+
+    @Override
+    public FillerMode getFillerMode() {
+        return FillerMode.DIAGONAL_STRIPES;
     }
 
     public int getStripeWidth() {

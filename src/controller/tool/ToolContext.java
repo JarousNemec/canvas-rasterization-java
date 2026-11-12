@@ -1,7 +1,8 @@
 package controller.tool;
 
-import fill.FillerMode;
-import fill.SeedFillMode;
+import fill.SeedFillStopMode;
+import fill.pattern.FillerMode;
+import fill.pattern.PatternFill;
 import model.CanvasModel;
 import utils.ColorUtil;
 
@@ -13,7 +14,7 @@ public class ToolContext {
     private int currentFillColor = ColorUtil.DEFAULT_FILL_COLOR;// Default black
     //second color of the pattern, used only when filler mode is not SOLID
     private int currentPatternColor = ColorUtil.DEFAULT_PATTERN_COLOR;
-    private SeedFillMode currentSeedFillMode = SeedFillMode.BACKGROUND;
+    private SeedFillStopMode currentSeedFillMode = SeedFillStopMode.BACKGROUND;
     private FillerMode currentFillerMode = FillerMode.SOLID;
 
     private int rasterWidth;
@@ -21,7 +22,7 @@ public class ToolContext {
 
     // Callbacks for Controller / Window notify
     private Consumer<Integer> onLineColorChangedByTool;
-    private Consumer<Integer> onFillColorChangedByTool;
+    private Consumer<PatternFill> onFillPatternChangedByTool;
 
 
     public ToolContext(CanvasModel canvasModel, int rasterHeight, int rasterWidth) {
@@ -59,11 +60,11 @@ public class ToolContext {
         this.currentPatternColor = currentPatternColor;
     }
 
-    public SeedFillMode getCurrentSeedFillMode() {
+    public SeedFillStopMode getCurrentSeedFillMode() {
         return currentSeedFillMode;
     }
 
-    public void setCurrentSeedFillMode(SeedFillMode currentSeedFillMode) {
+    public void setCurrentSeedFillMode(SeedFillStopMode currentSeedFillMode) {
         this.currentSeedFillMode = currentSeedFillMode;
     }
 
@@ -83,16 +84,32 @@ public class ToolContext {
         }
     }
 
-    public void setFillColorFromTool(int color) {
-        this.currentFillColor = color;
-        if (onFillColorChangedByTool != null) {
-            onFillColorChangedByTool.accept(color);
+    //fill color, pattern color and filler mode are all set first and only then the controller is notified,
+    //because notifying changes the UI and the UI writes the values from this context back to the selected object
+    public void setFillPatternFromTool(PatternFill pattern) {
+        this.currentFillColor = pattern.getPrimaryColor();
+        //solid has no second color, so the pattern color the user picked before is kept
+        if (pattern.getFillerMode() != FillerMode.SOLID)
+            this.currentPatternColor = pattern.getSecondaryColor();
+        this.currentFillerMode = pattern.getFillerMode();
+        if (onFillPatternChangedByTool != null) {
+            onFillPatternChangedByTool.accept(pattern);
         }
+    }
+
+    //pattern made of the current settings - for new and edited objects
+    public PatternFill createFillPattern() {
+        return currentFillerMode.createPattern(currentFillColor, currentPatternColor);
+    }
+
+    //the area is filled when user picked a fill color (default black is the same as background = no fill) or a pattern
+    public boolean isFillWanted() {
+        return currentFillColor != ColorUtil.DEFAULT_FILL_COLOR || currentFillerMode != FillerMode.SOLID;
     }
 
     // register listeners by controller
     public void setOnLineColorChangedByTool(Consumer<Integer> listener) { this.onLineColorChangedByTool = listener; }
-    public void setOnFillColorChangedByTool(Consumer<Integer> listener) { this.onFillColorChangedByTool = listener; }
+    public void setOnFillPatternChangedByTool(Consumer<PatternFill> listener) { this.onFillPatternChangedByTool = listener; }
 
     public int getRasterWidth() {
         return rasterWidth;

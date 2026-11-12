@@ -1,5 +1,11 @@
 package fill;
 
+import fill.pattern.CheckerboardPattern;
+import fill.pattern.DiagonalStripesPattern;
+import fill.pattern.FillerMode;
+import fill.pattern.PatternFill;
+import fill.pattern.SolidPattern;
+import fill.pattern.StripesPattern;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -8,6 +14,29 @@ class PatternTest {
 
     private static final int A = 0xFFFFFFFF; //primary color
     private static final int B = 0xFF000000; //secondary color
+
+    // solid
+
+    @Test
+    void solid_isSameColorEverywhere() {
+        PatternFill pattern = new SolidPattern(A);
+
+        assertEquals(A, pattern.getPixelForPoint(0, 0));
+        assertEquals(A, pattern.getPixelForPoint(123, 45));
+        assertEquals(A, pattern.getSecondaryColor());
+    }
+
+    // filler mode
+
+    @Test
+    void fillerMode_createPattern_returnsPatternOfThatMode() {
+        for (FillerMode mode : FillerMode.values()) {
+            PatternFill pattern = mode.createPattern(A, B);
+
+            assertEquals(mode, pattern.getFillerMode());
+            assertEquals(A, pattern.getPrimaryColor());
+        }
+    }
 
     // checkerboard
 

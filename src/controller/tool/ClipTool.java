@@ -60,7 +60,7 @@ public class ClipTool extends EditorTool {
     @Override
     public void mouseDragged(MouseEvent e) {
         super.mouseDragged(e);
-        if (isPointInRaster(e.getPoint()) && isBtn1Pressed)
+        if (isBtn1Pressed)
             handlePointMovement(e);
     }
 
@@ -77,17 +77,18 @@ public class ClipTool extends EditorTool {
         currentHit = new Hit(polygon, HitType.VERTEX, index, 0, position);
     }
 
+    //dragged out of the canvas -> the vertex slides along the border
     private void handlePointMovement(MouseEvent e) {
         if (currentHit == null) return;
+        Point2D newPosition = getPointInCanvas(e.getX(), e.getY());
         if (currentHit.hitType() == HitType.EDGE && currentHit.target() instanceof Polygon polygon) {
-            handleVertexInsert(polygon, new Point2D(e.getX(), e.getY()));
+            handleVertexInsert(polygon, newPosition);
             return;
         }
         if (currentHit.hitType() != HitType.VERTEX) return;
         if (!(currentHit.target() instanceof VertexMovable movable)) return;
 
         int index = currentHit.index();
-        Point2D newPosition = new Point2D(e.getX(), e.getY());
 
         if (movable instanceof Polygon polygon) {
             Point2D oldPosition = polygon.getPoint(index);

@@ -1,4 +1,4 @@
-package fill;
+package fill.pattern;
 
 //checkerboard of squares with the side squareSize px
 //column + row of the square is even -> primary color, odd -> secondary color
@@ -14,6 +14,11 @@ public class CheckerboardPattern extends TwoColorPattern {
     protected boolean isPrimary(int x, int y) {
         //same result as "column and row are both even or both odd"
         return isEvenCell(x, squareSize) == isEvenCell(y, squareSize);
+    }
+
+    @Override
+    public FillerMode getFillerMode() {
+        return FillerMode.CHECKERBOARD;
     }
 
     public int getSquareSize() {

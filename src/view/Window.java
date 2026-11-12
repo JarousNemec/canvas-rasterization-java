@@ -1,8 +1,8 @@
 package view;
 
 import controller.tool.ToolType;
-import fill.FillerMode;
-import fill.SeedFillMode;
+import fill.SeedFillStopMode;
+import fill.pattern.FillerMode;
 import view.component.ColorIcon;
 
 import javax.swing.*;
@@ -27,7 +27,7 @@ public class Window extends JFrame {
     private Consumer<Boolean> onLineClippingChangedListener;
     private Consumer<Boolean> onPolygonClippingChangedListener;
     private Consumer<Boolean> onClipperVisualizationChangedListener;
-    private Consumer<SeedFillMode> onSeedFillModeChangedListener;
+    private Consumer<SeedFillStopMode> onSeedFillModeChangedListener;
     private Consumer<FillerMode> onFillerModeChangedListener;
     private Consumer<Path> onOpenSceneListener;
     private Consumer<Path> onSaveSceneListener;
@@ -216,7 +216,6 @@ public class Window extends JFrame {
         seedFillModeComboBox.setFocusable(false);
         seedFillModeComboBox.addItem("Background");
         seedFillModeComboBox.addItem("Border");
-        seedFillModeComboBox.addItem("Pattern");
         seedFillModeComboBox.setMaximumSize(seedFillModeComboBox.getPreferredSize());
         seedFillModeComboBox.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
@@ -225,13 +224,10 @@ public class Window extends JFrame {
                 if (onSeedFillModeChangedListener != null) {
                     switch (selected) {
                         case "Background":
-                            onSeedFillModeChangedListener.accept(SeedFillMode.BACKGROUND);
+                            onSeedFillModeChangedListener.accept(SeedFillStopMode.BACKGROUND);
                             break;
                         case "Border":
-                            onSeedFillModeChangedListener.accept(SeedFillMode.BORDER);
-                            break;
-                        case "Pattern":
-                            onSeedFillModeChangedListener.accept(SeedFillMode.PATTERN);
+                            onSeedFillModeChangedListener.accept(SeedFillStopMode.BORDER);
                     }
                 }
             }
@@ -362,7 +358,7 @@ public class Window extends JFrame {
         this.onClipperVisualizationChangedListener = listener;
     }
 
-    public void setOnSeedFillModeChangedListener(Consumer<SeedFillMode> listener) {
+    public void setOnSeedFillModeChangedListener(Consumer<SeedFillStopMode> listener) {
         this.onSeedFillModeChangedListener = listener;
     }
 
@@ -414,16 +410,13 @@ public class Window extends JFrame {
         updateToolBarLayout();
     }
 
-    public void setSeedFillMode(SeedFillMode mode) {
+    public void setSeedFillMode(SeedFillStopMode mode) {
         switch (mode) {
             case BACKGROUND:
                 this.seedFillModeComboBox.setSelectedItem("Background");
                 break;
             case BORDER:
                 this.seedFillModeComboBox.setSelectedItem("Border");
-                break;
-            case PATTERN:
-                this.seedFillModeComboBox.setSelectedItem("Pattern");
         }
     }
 

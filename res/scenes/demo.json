@@ -5,6 +5,8 @@
       "type": "polygon",
       "color": "#FFFFFFFF",
       "fillColor": "#FF1E88E5",
+      "fillerMode": "CHECKERBOARD",
+      "patternColor": "#FF90CAF9",
       "filled": true,
       "points": [
         {"x": 320, "y": 300}, {"x": 275, "y": 378}, {"x": 185, "y": 378},
@@ -15,6 +17,8 @@
       "type": "polygon",
       "color": "#FFFFFFFF",
       "fillColor": "#FFC62828",
+      "fillerMode": "DIAGONAL_STRIPES",
+      "patternColor": "#FFFFCDD2",
       "filled": true,
       "points": [
         {"x": 470, "y": 240}, {"x": 650, "y": 300}, {"x": 470, "y": 360}, {"x": 520, "y": 300}
@@ -33,6 +37,8 @@
     {
       "type": "seedFill",
       "color": "#FFFFC107",
+      "fillerMode": "STRIPES",
+      "patternColor": "#FFFF6F00",
       "mode": "BORDER",
       "borderColor": "#FFFFFFFF",
       "seed": {"x": 400, "y": 300}

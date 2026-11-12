@@ -1,23 +1,24 @@
 package model;
 
-import fill.SeedFillMode;
+import fill.SeedFillStopMode;
 import fill.SeedFillerStackImpl;
+import fill.pattern.PatternFill;
 import rasterize.Rasterizable;
 import rasterize.RasterizationContext;
 import rasterize.RasterizationMode;
 
 public class SeedFill implements Rasterizable {
     private Point2D seed;
-    private int color;
+    private PatternFill fillPattern;
 
     //every seed fill keeps its own mode and border color,
     //the filler is shared and the scene is redrawn all the time, so it must be set again before every fill
-    private SeedFillMode mode;
+    private SeedFillStopMode mode;
     private int borderColor;
 
-    public SeedFill(Point2D seed, int color, SeedFillMode mode, int borderColor) {
+    public SeedFill(Point2D seed, PatternFill fillPattern, SeedFillStopMode mode, int borderColor) {
         this.seed = seed;
-        this.color = color;
+        this.fillPattern = fillPattern;
         this.mode = mode;
         this.borderColor = borderColor;
     }
@@ -30,11 +31,19 @@ public class SeedFill implements Rasterizable {
         this.seed = seed;
     }
 
-    public SeedFillMode getMode() {
+    public PatternFill getFillPattern() {
+        return fillPattern;
+    }
+
+    public void setFillPattern(PatternFill fillPattern) {
+        this.fillPattern = fillPattern;
+    }
+
+    public SeedFillStopMode getMode() {
         return mode;
     }
 
-    public void setMode(SeedFillMode mode) {
+    public void setMode(SeedFillStopMode mode) {
         this.mode = mode;
     }
 
@@ -50,7 +59,7 @@ public class SeedFill implements Rasterizable {
     public void rasterize(RasterizationContext context) {
         SeedFillerStackImpl filler = context.getSeedFiller();
         filler.setSeed(seed);
-        filler.setFillColor(this.color);
+        filler.setPattern(this.fillPattern);
         filler.setMode(this.mode);
         filler.setBorderColor(this.borderColor);
         filler.fill();
@@ -61,15 +70,15 @@ public class SeedFill implements Rasterizable {
         rasterize(context);
     }
 
+    //seed fill has no edges, so its color is the primary color of the pattern
+    //changing it keeps the type of the pattern and its second color
     @Override
     public void setColor(int color) {
-        this.color = color;
+        this.fillPattern = fillPattern.getFillerMode().createPattern(color, fillPattern.getSecondaryColor());
     }
 
     @Override
     public int getColor() {
-        return this.color;
+        return fillPattern.getPrimaryColor();
     }
-
-
 }

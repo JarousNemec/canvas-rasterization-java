@@ -6,7 +6,6 @@ import rasterize.Rasterizable;
 import rasterize.RasterizationContext;
 import rasterize.RasterizationMode;
 import select.Hit;
-import utils.ColorUtil;
 
 import java.awt.event.MouseEvent;
 
@@ -27,7 +26,7 @@ public class SelectTool extends EditorTool {
                 if (currentHit.target() instanceof Rasterizable)
                     toolContext.setLineColorFromTool(((Rasterizable) currentHit.target()).getColor());
                 if (currentHit.target() instanceof Fillable)
-                    toolContext.setFillColorFromTool(((Fillable) currentHit.target()).getFillColor());
+                    toolContext.setFillPatternFromTool(((Fillable) currentHit.target()).getFillPattern());
             }
         }
     }
@@ -53,8 +52,8 @@ public class SelectTool extends EditorTool {
                 ((Rasterizable) currentHit.target()).setColor(toolContext.getCurrentLineColor());
             if (currentHit.target() instanceof Fillable) {
                 Fillable targetedFillable = ((Fillable) currentHit.target());
-                targetedFillable.setFillColor(toolContext.getCurrentFillColor());
-                if (toolContext.getCurrentFillColor() != ColorUtil.DEFAULT_FILL_COLOR) {
+                targetedFillable.setFillPattern(toolContext.createFillPattern());
+                if (toolContext.isFillWanted()) {
                     targetedFillable.enableFill();
                 } else {
                     targetedFillable.disableFill();

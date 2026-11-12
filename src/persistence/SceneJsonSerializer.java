@@ -2,7 +2,9 @@ package persistence;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import fill.SeedFillMode;
+import fill.SeedFillStopMode;
+import fill.pattern.FillerMode;
+import fill.pattern.PatternFill;
 import model.ClipWindow;
 import model.Line;
 import model.Point2D;
@@ -32,8 +34,9 @@ public class SceneJsonSerializer {
 
     //one record for all object types, fields that the type doesn't use are null (and are not written to the file)
     //colors are saved as hex "#AARRGGBB", so they can be read and edited by hand
-    record ObjectData(String type, String color, String fillColor, Boolean filled,
-                      SeedFillMode mode, String borderColor, List<Point2D> points, Point2D seed) {
+    //fill pattern is saved as its mode + two colors: polygon -> fillColor + patternColor, seed fill -> color + patternColor
+    record ObjectData(String type, String color, String fillColor, FillerMode fillerMode, String patternColor, Boolean filled,
+                      SeedFillStopMode mode, String borderColor, List<Point2D> points, Point2D seed) {
     }
 
     //window is saved as two opposite corners [top left, bottom right]
@@ -98,14 +101,20 @@ public class SceneJsonSerializer {
 
     private ObjectData toData(Rasterizable rasterizable) {
         return switch (rasterizable) {
-            case Line line -> new ObjectData(TYPE_LINE, ColorUtil.integerToHex(line.getColor()), null, null,
+            case Line line -> new ObjectData(TYPE_LINE, ColorUtil.integerToHex(line.getColor()), null, null, null, null,
                     null, null, line.getVertices(), null);
-            case Polygon polygon ->
-                    new ObjectData(TYPE_POLYGON, ColorUtil.integerToHex(polygon.getColor()), ColorUtil.integerToHex(polygon.getFillColor()), polygon.isFilled(),
-                            null, null, polygon.getPointsReadOnly(), null);
-            case SeedFill seedFill ->
-                    new ObjectData(TYPE_SEED_FILL, ColorUtil.integerToHex(seedFill.getColor()), null, null,
-                            seedFill.getMode(), ColorUtil.integerToHex(seedFill.getBorderColor()), null, seedFill.getSeed());
+            case Polygon polygon -> {
+                PatternFill pattern = polygon.getFillPattern();
+                yield new ObjectData(TYPE_POLYGON, ColorUtil.integerToHex(polygon.getColor()),
+                        ColorUtil.integerToHex(pattern.getPrimaryColor()), pattern.getFillerMode(), writePatternColor(pattern), polygon.isFilled(),
+                        null, null, polygon.getPointsReadOnly(), null);
+            }
+            case SeedFill seedFill -> {
+                PatternFill pattern = seedFill.getFillPattern();
+                yield new ObjectData(TYPE_SEED_FILL, ColorUtil.integerToHex(pattern.getPrimaryColor()),
+                        null, pattern.getFillerMode(), writePatternColor(pattern), null,
+                        seedFill.getMode(), ColorUtil.integerToHex(seedFill.getBorderColor()), null, seedFill.getSeed());
+            }
             default -> throw new IllegalArgumentException("Can't save " + rasterizable.getClass().getSimpleName());
         };
     }
@@ -125,18 +134,34 @@ public class SceneJsonSerializer {
                 //new ArrayList, because Polygon doesn't copy the list and its editing writes into it
                 Polygon polygon = new Polygon(new ArrayList<>(data.points()));
                 polygon.setColor(ColorUtil.hexToInteger(data.color()));
-                polygon.setFillColor(ColorUtil.hexToInteger(data.fillColor()));
+                polygon.setFillPattern(readPattern(data, data.fillColor()));
                 if (data.filled())
                     polygon.enableFill();
                 return polygon;
             }
             case TYPE_SEED_FILL: {
                 //Gson returns null for unknown enum value, so mode must be checked
-                return new SeedFill(Objects.requireNonNull(data.seed(), "seed"), ColorUtil.hexToInteger(data.color()),
+                return new SeedFill(Objects.requireNonNull(data.seed(), "seed"), readPattern(data, data.color()),
                         Objects.requireNonNull(data.mode(), "mode"), ColorUtil.hexToInteger(data.borderColor()));
             }
             default:
                 throw new SceneFormatException("Unknown object type: " + data.type());
         }
+    }
+
+    //solid has no second color, so it is not written
+    private String writePatternColor(PatternFill pattern) {
+        if (pattern.getFillerMode() == FillerMode.SOLID)
+            return null;
+        return ColorUtil.integerToHex(pattern.getSecondaryColor());
+    }
+
+    //missing filler mode means SOLID - files saved before patterns existed have none
+    //(Gson returns null for unknown value as well, so unknown pattern is loaded as SOLID too)
+    private PatternFill readPattern(ObjectData data, String primaryColor) {
+        FillerMode fillerMode = data.fillerMode() == null ? FillerMode.SOLID : data.fillerMode();
+        int primary = ColorUtil.hexToInteger(primaryColor);
+        int secondary = fillerMode == FillerMode.SOLID ? primary : ColorUtil.hexToInteger(data.patternColor());
+        return fillerMode.createPattern(primary, secondary);
     }
 }

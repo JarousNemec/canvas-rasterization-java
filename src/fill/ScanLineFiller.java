@@ -1,18 +1,20 @@
 package fill;
 
+import fill.pattern.PatternFill;
+import fill.pattern.SolidPattern;
 import model.Edge;
 import model.Point2D;
 import model.Polygon;
 import raster.Raster;
 import sort.InsertionSort;
+import utils.ColorUtil;
 
-import java.awt.*;
 import java.util.ArrayList;
 
 public class ScanLineFiller implements Filler {
 
     private final Raster raster;
-    private int fillColor = Color.blue.getRGB();
+    private PatternFill pattern = new SolidPattern(ColorUtil.DEFAULT_FILL_COLOR);
     private Polygon polygon;
 
     public ScanLineFiller(Raster raster) {
@@ -65,18 +67,20 @@ public class ScanLineFiller implements Filler {
             //fill between pairs: 1st-2nd, 3rd-4th, ...
             for (int i = 0; i < intersectionsX.size() - 1; i = i + 2) {
                 for (int x = intersectionsX.get(i); x < intersectionsX.get(i + 1); x++) {
-                    raster.setPixel(x, y, fillColor);
+                    raster.setPixel(x, y, pattern.getPixelForPoint(x, y));
                 }
             }
         }
     }
 
-    public int getFillColor() {
-        return fillColor;
+    @Override
+    public PatternFill getPattern() {
+        return pattern;
     }
 
-    public void setFillColor(int fillColor) {
-        this.fillColor = fillColor;
+    @Override
+    public void setPattern(PatternFill pattern) {
+        this.pattern = pattern;
     }
 
     public Polygon getPolygon() {

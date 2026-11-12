@@ -5,8 +5,9 @@ import clip.Clippable;
 import controller.tool.*;
 import fill.ScanLineFiller;
 import rasterize.*;
-import fill.FillerMode;
-import fill.SeedFillMode;
+import fill.SeedFillStopMode;
+import fill.pattern.FillerMode;
+import fill.pattern.PatternFill;
 import fill.SeedFillerStackImpl;
 import model.*;
 import persistence.SceneFileStorage;
@@ -73,8 +74,17 @@ public class Controller2D {
     }
 
     private void initToolContextEvents() {
-        toolContext.setOnFillColorChangedByTool(this.window::setFillColor);
+        toolContext.setOnFillPatternChangedByTool(this::showFillPattern);
         toolContext.setOnLineColorChangedByTool(this.window::setLineColor);
+    }
+
+    //selected object's pattern shown in the UI, values are already in the tool context
+    private void showFillPattern(PatternFill pattern) {
+        window.setFillColor(toolContext.getCurrentFillColor());
+        window.setPatternColor(toolContext.getCurrentPatternColor());
+        //fires the combobox listener -> updateFillerMode
+        window.setFillerMode(toolContext.getCurrentFillerMode());
+        window.setPatternColorChooserVisible(isPatternColorChooserVisible());
     }
 
     private void initWindowEvents() {
@@ -92,7 +102,7 @@ public class Controller2D {
         this.window.setOnLoadDemoSceneListener(this::loadDemoScene);
     }
 
-    private void updateSeedFillMode(SeedFillMode mode) {
+    private void updateSeedFillMode(SeedFillStopMode mode) {
         toolContext.setCurrentSeedFillMode(mode);
         //line color is the border color, so it can be picked only for the border seed fill
         window.setLineColorChooserVisible(isLineColorChooserVisible());
@@ -101,12 +111,15 @@ public class Controller2D {
     private void updateFillerMode(FillerMode mode) {
         toolContext.setCurrentFillerMode(mode);
         window.setPatternColorChooserVisible(isPatternColorChooserVisible());
+        //same as colors - the polygon in progress / selected object gets the new pattern right away
+        activeTool.updateByContext();
+        drawScene();
     }
 
     private boolean isLineColorChooserVisible() {
         return switch (activeToolType) {
             case LINE, POLYGON, SELECT -> true;
-            case FILL -> toolContext.getCurrentSeedFillMode() == SeedFillMode.BORDER;
+            case FILL -> toolContext.getCurrentSeedFillMode() == SeedFillStopMode.BORDER;
             case VERTEX, CLIP -> false;
         };
     }
@@ -166,7 +179,7 @@ public class Controller2D {
 
     private void setActiveTool() {
         //seed fill mode is a setting of the user, not of the tool, so it is kept when the tool (and its context) changes
-        SeedFillMode seedFillMode = toolContext != null ? toolContext.getCurrentSeedFillMode() : SeedFillMode.BACKGROUND;
+        SeedFillStopMode seedFillMode = toolContext != null ? toolContext.getCurrentSeedFillMode() : SeedFillStopMode.BACKGROUND;
         //same for the filler mode
         FillerMode fillerMode = toolContext != null ? toolContext.getCurrentFillerMode() : FillerMode.SOLID;
         toolContext = new ToolContext(canvasModel, canvasPanel.getRaster().getHeight(), canvasPanel.getRaster().getWidth());

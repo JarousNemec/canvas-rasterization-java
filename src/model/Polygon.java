@@ -6,6 +6,8 @@ import clip.SutherlandHodgman;
 import edit.VertexListEditable;
 import fill.Fillable;
 import fill.ScanLineFiller;
+import fill.pattern.PatternFill;
+import fill.pattern.SolidPattern;
 import rasterize.*;
 import select.Hit;
 import select.SelectionUtil;
@@ -19,7 +21,7 @@ import java.util.List;
 public class Polygon implements Rasterizable, Fillable, Selectable, VertexListEditable, Clippable {
     private final List<Point2D> points;
     private int color = ColorUtil.DEFAULT_LINE_COLOR;
-    private int fillColor = ColorUtil.DEFAULT_FILL_COLOR;
+    private PatternFill fillPattern = new SolidPattern(ColorUtil.DEFAULT_FILL_COLOR);
     private boolean isFilled = false;
 
 
@@ -77,7 +79,7 @@ public class Polygon implements Rasterizable, Fillable, Selectable, VertexListEd
         if (this.isFilled) {
             ScanLineFiller filler = context.getScanLineFiller();
             filler.setPolygon(this);
-            filler.setFillColor(this.fillColor);
+            filler.setPattern(this.fillPattern);
             filler.fill();
         }
         PolygonRasterizer rasterizer = context.getPolygonRasterizer();
@@ -112,13 +114,13 @@ public class Polygon implements Rasterizable, Fillable, Selectable, VertexListEd
     }
 
     @Override
-    public void setFillColor(int color) {
-        this.fillColor = color;
+    public void setFillPattern(PatternFill pattern) {
+        this.fillPattern = pattern;
     }
 
     @Override
-    public int getFillColor() {
-        return this.fillColor;
+    public PatternFill getFillPattern() {
+        return this.fillPattern;
     }
 
     @Override
@@ -146,7 +148,8 @@ public class Polygon implements Rasterizable, Fillable, Selectable, VertexListEd
             return null;
         var clippedPolygon = new Polygon(clippedPoints);
         clippedPolygon.color = this.color;
-        clippedPolygon.fillColor = this.fillColor;
+        //pattern can't be changed, so the clipped polygon can share it
+        clippedPolygon.fillPattern = this.fillPattern;
         clippedPolygon.isFilled = this.isFilled;
         return clippedPolygon;
     }

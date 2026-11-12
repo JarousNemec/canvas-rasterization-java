@@ -1,4 +1,4 @@
-package fill;
+package fill.pattern;
 
 //vertical stripes, stripe and the gap between stripes have the same width stripeWidth px
 //color depends only on x, so it's the same in every row
@@ -13,6 +13,11 @@ public class StripesPattern extends TwoColorPattern {
     @Override
     protected boolean isPrimary(int x, int y) {
         return isEvenCell(x, stripeWidth);
+    }
+
+    @Override
+    public FillerMode getFillerMode() {
+        return FillerMode.STRIPES;
     }
 
     public int getStripeWidth() {

@@ -25,7 +25,7 @@ public class FillerTool extends EditorTool {
         //border color = current line color, used only in BORDER mode
         var seedFill = new SeedFill(
                 new Point2D(e.getX(), e.getY()),
-                toolContext.getCurrentFillColor(),
+                toolContext.createFillPattern(),
                 toolContext.getCurrentSeedFillMode(),
                 toolContext.getCurrentLineColor());
         toolContext.getCanvasModel().addRasterizable(seedFill);
