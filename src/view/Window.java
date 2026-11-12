@@ -1,6 +1,7 @@
 package view;
 
 import controller.tool.ToolType;
+import fill.FillerMode;
 import fill.SeedFillMode;
 import view.component.ColorIcon;
 
@@ -22,10 +23,12 @@ public class Window extends JFrame {
     private Consumer<ToolType> onModeChangedListener;
     private Consumer<Integer> onLineColorChangedListener;
     private Consumer<Integer> onFillColorChangedListener;
+    private Consumer<Integer> onPatternColorChangedListener;
     private Consumer<Boolean> onLineClippingChangedListener;
     private Consumer<Boolean> onPolygonClippingChangedListener;
     private Consumer<Boolean> onClipperVisualizationChangedListener;
     private Consumer<SeedFillMode> onSeedFillModeChangedListener;
+    private Consumer<FillerMode> onFillerModeChangedListener;
     private Consumer<Path> onOpenSceneListener;
     private Consumer<Path> onSaveSceneListener;
     private Runnable onLoadDemoSceneListener;
@@ -38,8 +41,13 @@ public class Window extends JFrame {
     private final JButton pickLineColorButton = new JButton(" Line color ", pickLineColorIcon);
     private final ColorIcon pickFillColorIcon = new ColorIcon(15);
     private final JButton pickFillColorButton = new JButton(" Fill color ", pickFillColorIcon);
+    //second color of the pattern, fill color is the first one
+    private final ColorIcon pickPatternColorIcon = new ColorIcon(15);
+    private final JButton pickPatternColorButton = new JButton(" Pattern color ", pickPatternColorIcon);
     private final JLabel seedFillModeLabel = new JLabel(" Seed fill mode: ");
     private final JComboBox<String> seedFillModeComboBox = new JComboBox<>();
+    private final JLabel fillerModeLabel = new JLabel(" Filler mode: ");
+    private final JComboBox<String> fillerModeComboBox = new JComboBox<>();
     private final JCheckBox lineClippingCheckBox = new JCheckBox(" Clip lines ");
     private final JCheckBox polygonClippingCheckBox = new JCheckBox(" Clip polygons ");
     private final JCheckBox clipperVisualizationCheckBox = new JCheckBox(" Show clippers ");
@@ -65,6 +73,8 @@ public class Window extends JFrame {
 
         initSeedFillModeComboBox();
 
+        initFillerModeComboBox();
+
         initClipCheckBoxes();
 
         //init mode selector label
@@ -76,9 +86,13 @@ public class Window extends JFrame {
         //add components to the window container
         toolBar.add(modeComboBox);
         toolBar.add(pickLineColorButton);
-        toolBar.add(pickFillColorButton);
         toolBar.add(seedFillModeLabel);
         toolBar.add(seedFillModeComboBox);
+        //filler mode is followed by its colors
+        toolBar.add(fillerModeLabel);
+        toolBar.add(fillerModeComboBox);
+        toolBar.add(pickFillColorButton);
+        toolBar.add(pickPatternColorButton);
         toolBar.add(lineClippingCheckBox);
         toolBar.add(polygonClippingCheckBox);
         toolBar.add(clipperVisualizationCheckBox);
@@ -166,30 +180,35 @@ public class Window extends JFrame {
     }
 
     private void initColorChoosers() {
-        //init line color chooser
-        pickLineColorButton.setFocusable(false);
-        pickLineColorButton.addActionListener(_ -> {
-            Color color = JColorChooser.showDialog(Window.this, "Pick line color", pickLineColorIcon.getColor(), false);
-            if (color == null)
-                return;
-            int currentColor = color.getRGB();
-            pickLineColorIcon.setColor(currentColor);
-            pickLineColorButton.repaint();
+        //listeners are set later by the controller, so they are read in the moment the color is picked
+        initColorChooser(pickLineColorButton, pickLineColorIcon, "Pick line color", color -> {
             if (onLineColorChangedListener != null)
-                onLineColorChangedListener.accept(currentColor);
+                onLineColorChangedListener.accept(color);
+        });
+        initColorChooser(pickFillColorButton, pickFillColorIcon, "Pick fill color", color -> {
+            if (onFillColorChangedListener != null)
+                onFillColorChangedListener.accept(color);
+        });
+        initColorChooser(pickPatternColorButton, pickPatternColorIcon, "Pick pattern color", color -> {
+            if (onPatternColorChangedListener != null)
+                onPatternColorChangedListener.accept(color);
         });
 
-        //init fill color chooser
-        pickFillColorButton.setFocusable(false);
-        pickFillColorButton.addActionListener(_ -> {
-            Color color = JColorChooser.showDialog(Window.this, "Pick fill color", pickFillColorIcon.getColor(), false);
+        //visible only when a pattern is selected
+        setPatternColorChooserVisible(false);
+    }
+
+    //same behavior for all color buttons - open the dialog, update the icon and notify the listener
+    private void initColorChooser(JButton button, ColorIcon icon, String title, Consumer<Integer> onColorPicked) {
+        button.setFocusable(false);
+        button.addActionListener(_ -> {
+            Color color = JColorChooser.showDialog(Window.this, title, icon.getColor(), false);
             if (color == null)
                 return;
             int currentColor = color.getRGB();
-            pickFillColorIcon.setColor(currentColor);
-            pickFillColorButton.repaint();
-            if (onFillColorChangedListener != null)
-                onFillColorChangedListener.accept(currentColor);
+            icon.setColor(currentColor);
+            button.repaint();
+            onColorPicked.accept(currentColor);
         });
     }
 
@@ -220,6 +239,39 @@ public class Window extends JFrame {
 
         //visible only for the fill tool
         setSeedFillModeComboBoxVisible(false);
+    }
+
+    private void initFillerModeComboBox() {
+        fillerModeComboBox.setFocusable(false);
+        fillerModeComboBox.addItem("Solid");
+        fillerModeComboBox.addItem("Checkerboard");
+        fillerModeComboBox.addItem("Stripes");
+        fillerModeComboBox.addItem("Diagonal stripes");
+        fillerModeComboBox.setMaximumSize(fillerModeComboBox.getPreferredSize());
+        fillerModeComboBox.addItemListener(e -> {
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                String selected = (String) e.getItem();
+
+                if (onFillerModeChangedListener != null) {
+                    switch (selected) {
+                        case "Solid":
+                            onFillerModeChangedListener.accept(FillerMode.SOLID);
+                            break;
+                        case "Checkerboard":
+                            onFillerModeChangedListener.accept(FillerMode.CHECKERBOARD);
+                            break;
+                        case "Stripes":
+                            onFillerModeChangedListener.accept(FillerMode.STRIPES);
+                            break;
+                        case "Diagonal stripes":
+                            onFillerModeChangedListener.accept(FillerMode.DIAGONAL_STRIPES);
+                    }
+                }
+            }
+        });
+
+        //visible only for the tools that fill something
+        setFillerModeComboBoxVisible(false);
     }
 
     private void initClipCheckBoxes() {
@@ -294,6 +346,10 @@ public class Window extends JFrame {
         this.onFillColorChangedListener = listener;
     }
 
+    public void setOnPatternColorChangedListener(Consumer<Integer> listener) {
+        this.onPatternColorChangedListener = listener;
+    }
+
     public void setOnLineClippingChangedListener(Consumer<Boolean> listener) {
         this.onLineClippingChangedListener = listener;
     }
@@ -324,6 +380,32 @@ public class Window extends JFrame {
 
     public void showError(String message) {
         JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    public void setOnFillerModeChangedListener(Consumer<FillerMode> listener) {
+        this.onFillerModeChangedListener = listener;
+    }
+
+    public void setFillerModeComboBoxVisible(boolean visible) {
+        this.fillerModeLabel.setVisible(visible);
+        this.fillerModeComboBox.setVisible(visible);
+        updateToolBarLayout();
+    }
+
+    public void setFillerMode(FillerMode mode) {
+        switch (mode) {
+            case SOLID:
+                this.fillerModeComboBox.setSelectedItem("Solid");
+                break;
+            case CHECKERBOARD:
+                this.fillerModeComboBox.setSelectedItem("Checkerboard");
+                break;
+            case STRIPES:
+                this.fillerModeComboBox.setSelectedItem("Stripes");
+                break;
+            case DIAGONAL_STRIPES:
+                this.fillerModeComboBox.setSelectedItem("Diagonal stripes");
+        }
     }
 
     public void setSeedFillModeComboBoxVisible(boolean visible) {
@@ -375,6 +457,14 @@ public class Window extends JFrame {
     }
     public void setFillColorChooserVisible(boolean visible) {
         this.pickFillColorButton.setVisible(visible);
+        updateToolBarLayout();
+    }
+    public void setPatternColor(int color) {
+        this.pickPatternColorIcon.setColor(color);
+        this.pickPatternColorButton.repaint();
+    }
+    public void setPatternColorChooserVisible(boolean visible) {
+        this.pickPatternColorButton.setVisible(visible);
         updateToolBarLayout();
     }
     public void setLineColorChooserVisible(boolean visible) {

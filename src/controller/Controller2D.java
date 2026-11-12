@@ -5,6 +5,7 @@ import clip.Clippable;
 import controller.tool.*;
 import fill.ScanLineFiller;
 import rasterize.*;
+import fill.FillerMode;
 import fill.SeedFillMode;
 import fill.SeedFillerStackImpl;
 import model.*;
@@ -79,11 +80,13 @@ public class Controller2D {
     private void initWindowEvents() {
         this.window.setOnToolChangedListener(this::setActiveToolType);
         this.window.setOnFillColorChangedListener(this::updateFillColor);
+        this.window.setOnPatternColorChangedListener(this::updatePatternColor);
         this.window.setOnLineColorChangedListener(this::updateLineColor);
         this.window.setOnLineClippingChangedListener(this::updateLineClipping);
         this.window.setOnPolygonClippingChangedListener(this::updatePolygonClipping);
         this.window.setOnClipperVisualizationChangedListener(this::updateClipperVisualization);
         this.window.setOnSeedFillModeChangedListener(this::updateSeedFillMode);
+        this.window.setOnFillerModeChangedListener(this::updateFillerMode);
         this.window.setOnOpenSceneListener(this::openScene);
         this.window.setOnSaveSceneListener(this::saveScene);
         this.window.setOnLoadDemoSceneListener(this::loadDemoScene);
@@ -95,12 +98,30 @@ public class Controller2D {
         window.setLineColorChooserVisible(isLineColorChooserVisible());
     }
 
+    private void updateFillerMode(FillerMode mode) {
+        toolContext.setCurrentFillerMode(mode);
+        window.setPatternColorChooserVisible(isPatternColorChooserVisible());
+    }
+
     private boolean isLineColorChooserVisible() {
         return switch (activeToolType) {
             case LINE, POLYGON, SELECT -> true;
             case FILL -> toolContext.getCurrentSeedFillMode() == SeedFillMode.BORDER;
             case VERTEX, CLIP -> false;
         };
+    }
+
+    //filler mode and fill color make sense only for the tools that fill something
+    private boolean isFillingTool() {
+        return switch (activeToolType) {
+            case POLYGON, FILL, SELECT -> true;
+            case LINE, VERTEX, CLIP -> false;
+        };
+    }
+
+    //pattern has two colors - fill color and pattern color, solid fill uses only the fill color
+    private boolean isPatternColorChooserVisible() {
+        return isFillingTool() && toolContext.getCurrentFillerMode() != FillerMode.SOLID;
     }
 
     private void updateLineClipping(boolean enabled) {
@@ -130,6 +151,12 @@ public class Controller2D {
         drawScene();
     }
 
+    private void updatePatternColor(int color) {
+        toolContext.setCurrentPatternColor(color);
+        activeTool.updateByContext();
+        drawScene();
+    }
+
     private void setActiveToolType(ToolType activeToolType) {
         Logger.info("Drawing mode changing from: " + this.activeToolType + " to: " + activeToolType);
         this.activeToolType = activeToolType;
@@ -140,41 +167,43 @@ public class Controller2D {
     private void setActiveTool() {
         //seed fill mode is a setting of the user, not of the tool, so it is kept when the tool (and its context) changes
         SeedFillMode seedFillMode = toolContext != null ? toolContext.getCurrentSeedFillMode() : SeedFillMode.BACKGROUND;
+        //same for the filler mode
+        FillerMode fillerMode = toolContext != null ? toolContext.getCurrentFillerMode() : FillerMode.SOLID;
         toolContext = new ToolContext(canvasModel, canvasPanel.getRaster().getHeight(), canvasPanel.getRaster().getWidth());
         toolContext.setCurrentSeedFillMode(seedFillMode);
+        toolContext.setCurrentFillerMode(fillerMode);
         initToolContextEvents();
         switch (this.activeToolType) {
             case LINE:
                 activeTool = new LineTool(toolContext);
-                window.setFillColorChooserVisible(false);
                 break;
             case POLYGON:
                 activeTool = new PolygonTool(toolContext);
-                window.setFillColorChooserVisible(true);
                 break;
             case FILL:
                 activeTool = new FillerTool(toolContext);
-                window.setFillColorChooserVisible(true);
                 break;
             case VERTEX:
                 activeTool = new VertexTool(toolContext);
-                window.setFillColorChooserVisible(false);
                 break;
             case SELECT:
                 activeTool = new SelectTool(toolContext);
-                window.setFillColorChooserVisible(true);
                 break;
             case CLIP:
                 activeTool = new ClipTool(toolContext, clipContext);
-                window.setFillColorChooserVisible(false);
                 break;
         }
+        window.setFillColorChooserVisible(isFillingTool());
+        window.setPatternColorChooserVisible(isPatternColorChooserVisible());
         window.setLineColorChooserVisible(isLineColorChooserVisible());
         window.setClipCheckBoxesVisible(this.activeToolType == ToolType.CLIP);
         window.setSeedFillModeComboBoxVisible(this.activeToolType == ToolType.FILL);
         window.setSeedFillMode(toolContext.getCurrentSeedFillMode());
+        window.setFillerModeComboBoxVisible(isFillingTool());
+        window.setFillerMode(toolContext.getCurrentFillerMode());
         window.setLineColor(toolContext.getCurrentLineColor());
         window.setFillColor(toolContext.getCurrentFillColor());
+        window.setPatternColor(toolContext.getCurrentPatternColor());
     }
 
     private void initKeyBindings() {
