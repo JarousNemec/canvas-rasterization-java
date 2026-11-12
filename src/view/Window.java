@@ -116,7 +116,7 @@ public class Window extends JFrame {
         JMenu fileMenu = new JMenu("File");
 
         JMenuItem openSceneItem = new JMenuItem("Open scene...");
-        openSceneItem.addActionListener(_ -> {
+        openSceneItem.addActionListener(e -> {
             Path path = chooseSceneFileToOpen();
             if (path != null && onOpenSceneListener != null)
                 onOpenSceneListener.accept(path);
@@ -124,7 +124,7 @@ public class Window extends JFrame {
         });
 
         JMenuItem saveSceneItem = new JMenuItem("Save scene...");
-        saveSceneItem.addActionListener(_ -> {
+        saveSceneItem.addActionListener(e -> {
             Path path = chooseSceneFileToSave();
             if (path != null && onSaveSceneListener != null)
                 onSaveSceneListener.accept(path);
@@ -132,7 +132,7 @@ public class Window extends JFrame {
         });
 
         JMenuItem loadDemoSceneItem = new JMenuItem("Load demo scene");
-        loadDemoSceneItem.addActionListener(_ -> {
+        loadDemoSceneItem.addActionListener(e -> {
             if (onLoadDemoSceneListener != null)
                 onLoadDemoSceneListener.run();
             canvasPanel.grabFocus();
@@ -201,7 +201,7 @@ public class Window extends JFrame {
     //same behavior for all color buttons - open the dialog, update the icon and notify the listener
     private void initColorChooser(JButton button, ColorIcon icon, String title, Consumer<Integer> onColorPicked) {
         button.setFocusable(false);
-        button.addActionListener(_ -> {
+        button.addActionListener(e -> {
             Color color = JColorChooser.showDialog(Window.this, title, icon.getColor(), false);
             if (color == null)
                 return;

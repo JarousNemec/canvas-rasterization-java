@@ -3,7 +3,6 @@ package rasterize;
 import model.Point2D;
 import raster.Raster;
 import utils.ColorUtil;
-import utils.Logger;
 
 
 public abstract class LineRasterizer implements Rasterizer {
@@ -70,9 +69,7 @@ public abstract class LineRasterizer implements Rasterizer {
     }
 
     // Every rasterize method overload uses this method in result
-    public void rasterize(int x1, int y1, int x2, int y2, RasterizationMode mode) {
-        Logger.error("Calling abstract rasterize method in LineRasterizer");
-    }
+    public abstract void rasterize(int x1, int y1, int x2, int y2, RasterizationMode mode);
 
     public boolean isPointInRaster(int x, int y) {
         return (x >= 0 && y >= 0 && x < raster.getWidth() && y < raster.getHeight());
